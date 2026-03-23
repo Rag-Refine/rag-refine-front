@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, Github } from "lucide-react";
 import { useMemo, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { Button } from "../../components/ui/button";
 
 type Errors = {
   name?: string;
@@ -87,12 +88,9 @@ export default function SignupPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="mt-2 w-full rounded-lg bg-[#3b82f6] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_-12px_rgba(59,130,246,0.7)] transition hover:bg-[#2563eb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3b82f6]"
-          >
+          <Button type="submit" className="mt-2 w-full justify-center">
             Create Account
-          </button>
+          </Button>
         </form>
 
         <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">
