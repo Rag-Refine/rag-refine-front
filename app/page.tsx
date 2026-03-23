@@ -1,39 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { motion } from "motion/react";
-import { ArrowRight, CheckCircle2, Database, Filter, LayoutGrid, Terminal, Trash2, Wrench } from "lucide-react";
 import type { ReactNode } from "react";
-
-type ButtonProps = {
-  children: ReactNode;
-  variant?: "primary" | "secondary" | "ghost";
-  className?: string;
-  icon?: React.ElementType;
-  href?: string;
-};
-
-const Button = ({ children, variant = "primary", className = "", icon: Icon, href }: ButtonProps) => {
-  const baseStyle =
-    "inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95";
-
-  const variants: Record<Required<ButtonProps>["variant"], string> = {
-    primary:
-      "bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg shadow-primary/20 hover:shadow-primary/40",
-    secondary: "bg-surface-high border border-white/5 hover:border-primary/50 text-on-surface",
-    ghost: "text-on-surface-variant hover:text-on-surface hover:bg-white/5",
-  };
-
-  const btn = (
-    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`${baseStyle} ${variants[variant]} ${className}`}>
-      {children}
-      {Icon && <Icon size={16} />}
-    </motion.button>
-  );
-
-  if (href) return <Link href={href}>{btn}</Link>;
-  return btn;
-};
+import { motion } from "motion/react";
+import { CheckCircle2, Database, Filter, LayoutGrid, Terminal, Trash2, Wrench } from "lucide-react";
 
 const GlassPanel = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
   <div className={`bg-surface-lowest/60 backdrop-blur-xl border border-white/5 rounded-2xl ${className}`}>{children}</div>
@@ -60,12 +29,6 @@ export default function Home() {
             <button className="hidden md:flex p-2 text-on-surface-variant hover:bg-white/5 rounded-lg transition-all duration-200">
               <Terminal size={20} />
             </button>
-            <Button href="/login" variant="ghost" className="hidden sm:flex">
-              Sign In
-            </Button>
-            <Button href="/signup" variant="primary">
-              Get Started
-            </Button>
           </div>
         </div>
       </nav>
@@ -78,7 +41,12 @@ export default function Home() {
           </div>
 
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="space-y-8"
+            >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-high border border-white/5 text-xs font-semibold text-secondary">
                 <span className="flex h-2 w-2 rounded-full bg-secondary animate-pulse" />
                 LLM-Optimized Infrastructure
@@ -86,21 +54,16 @@ export default function Home() {
 
               <h1 className="text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.1]">
                 Garbage In, <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary-container to-secondary">Garbage Out.</span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary-container to-secondary">
+                  Garbage Out.
+                </span>
               </h1>
 
               <p className="text-xl text-on-surface-variant max-w-xl leading-relaxed">
-                Stop feeding your LLM noisy data. Convert messy PDFs, complex tables, and cluttered web docs into clean, structured Markdown ready for RAG.
+                Stop feeding your LLM noisy data. Convert messy PDFs, complex tables, and cluttered web docs into clean,
+                structured Markdown ready for RAG.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button href="/signup" variant="primary" className="px-8 py-4 text-base">
-                  Get Started for Free
-                </Button>
-                <Button href="/login" variant="secondary" className="px-8 py-4 text-base" icon={ArrowRight}>
-                  Sign In
-                </Button>
-              </div>
             </motion.div>
 
             <motion.div
@@ -215,7 +178,8 @@ export default function Home() {
                 <div className="relative z-10 max-w-md">
                   <h3 className="text-2xl font-bold mb-4">Smart Table Recovery</h3>
                   <p className="text-on-surface-variant mb-8">
-                    Our proprietary OCR-to-JSON engine reconstructs multi-page tables with absolute fidelity, maintaining cell relationships for complex analytical queries.
+                    Our proprietary OCR-to-JSON engine reconstructs multi-page tables with absolute fidelity, maintaining cell
+                    relationships for complex analytical queries.
                   </p>
                   <div className="flex items-center gap-4">
                     <span className="px-3 py-1 bg-secondary/10 border border-secondary/20 text-secondary text-xs rounded-full">Perfect Markdown</span>
@@ -267,7 +231,8 @@ export default function Home() {
                   <div className="flex-1">
                     <h3 className="text-2xl font-bold mb-4">Developer First</h3>
                     <p className="text-on-surface-variant">
-                      Deep integrations with the tools you already use. Native support for LangChain, LlamaIndex, and any Python project via our high-performance REST API.
+                      Deep integrations with the tools you already use. Native support for LangChain, LlamaIndex, and any Python project
+                      via our high-performance REST API.
                     </p>
                     <div className="mt-8 flex flex-wrap gap-4">
                       {/* <div className="flex items-center gap-2 bg-surface-lowest px-4 py-2 rounded-lg border border-white/5">
@@ -284,7 +249,9 @@ export default function Home() {
 
         <section className="py-16 border-y border-white/5">
           <div className="max-w-7xl mx-auto px-6">
-            <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-500 mb-10">Seamless Integration with your Vector Stack</p>
+            <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-500 mb-10">
+              Seamless Integration with your Vector Stack
+            </p>
             <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
               {["Pinecone", "Weaviate", "Milvus", "Supabase", "MongoDB"].map((logo) => (
                 <span key={logo} className="text-2xl font-bold">
