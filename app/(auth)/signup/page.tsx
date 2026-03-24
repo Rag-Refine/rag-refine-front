@@ -1,18 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Github } from "lucide-react";
-import { useMemo, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { ArrowLeft, Github, Loader2 } from "lucide-react";
+import { useActionState, useMemo, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { Button } from "../../components/ui/button";
-
-type Errors = {
-  name?: string;
-  email?: string;
-  password?: string;
-};
+import { signup, type SignupState } from "./actions";
 
 export default function SignupPage() {
-  const [errors, setErrors] = useState<Errors>({});
+  const [state, formAction, pending] = useActionState<SignupState, FormData>(signup, {});
   const [password, setPassword] = useState("");
 
   const strengthLabel = useMemo(() => {
@@ -21,22 +16,6 @@ export default function SignupPage() {
     if (password.length >= 8) return "Medium";
     return "Weak";
   }, [password]);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const nextErrors: Errors = {};
-
-    if (!String(formData.get("name") || "").trim()) nextErrors.name = "Full name is required";
-    if (!String(formData.get("email") || "").trim()) nextErrors.email = "Email is required";
-    if (!String(formData.get("password") || "").trim()) nextErrors.password = "Password is required";
-
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length === 0) {
-      console.log("signup", Object.fromEntries(formData.entries()));
-    }
-  };
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -62,15 +41,37 @@ export default function SignupPage() {
 
         <Separator label="OR" />
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <InputField id="name" name="name" label="Full Name" placeholder="Ada Lovelace" error={errors.name} />
+        <form key={state.formKey} action={formAction} className="mt-6 space-y-4">
+          {state.error && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {state.error}
+            </div>
+          )}
+
+          <InputField
+            id="full_name"
+            name="full_name"
+            label="Full Name"
+            placeholder="Ada Lovelace"
+            defaultValue={state.fields?.full_name}
+            required
+          />
+          <InputField
+            id="account_name"
+            name="account_name"
+            label="Organization Name"
+            placeholder="Acme Corp"
+            defaultValue={state.fields?.account_name}
+            required
+          />
           <InputField
             id="email"
             name="email"
             label="Email"
             type="email"
             placeholder="you@company.com"
-            error={errors.email}
+            defaultValue={state.fields?.email}
+            required
           />
           <div className="space-y-2">
             <InputField
@@ -79,7 +80,7 @@ export default function SignupPage() {
               label="Password"
               type="password"
               placeholder="••••••••"
-              error={errors.password}
+              required
               onChange={(e) => setPassword(e.target.value)}
             />
             <div className="flex items-center justify-between text-xs text-zinc-400">
@@ -87,9 +88,17 @@ export default function SignupPage() {
               <span className={strengthColor(strengthLabel)}>{strengthLabel || ""}</span>
             </div>
           </div>
+          <InputField
+            id="confirm_password"
+            name="confirm_password"
+            label="Confirm Password"
+            type="password"
+            placeholder="••••••••"
+            required
+          />
 
-          <Button type="submit" className="mt-2 w-full justify-center">
-            Create Account
+          <Button type="submit" className="mt-2 w-full justify-center" disabled={pending}>
+            {pending ? <Loader2 size={16} className="animate-spin" /> : "Create Account"}
           </Button>
         </form>
 
