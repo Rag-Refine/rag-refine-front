@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { CheckCircle2, Database, Filter, LayoutGrid, Terminal, Trash2, Wrench } from "lucide-react";
+import { Button } from "./components/ui/button";
 
 const GlassPanel = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
   <div className={`bg-surface-lowest/60 backdrop-blur-xl border border-white/5 rounded-2xl ${className}`}>{children}</div>
@@ -29,6 +30,14 @@ export default function Home() {
             <button className="hidden md:flex p-2 text-on-surface-variant hover:bg-white/5 rounded-lg transition-all duration-200">
               <Terminal size={20} />
             </button>
+            <div className="hidden sm:flex items-center gap-2">
+              <Button href="/login" variant="ghost" className="px-4 py-2">
+                Sign In
+              </Button>
+              <Button href="/signup" variant="primary" className="px-4 py-2">
+                Create Account
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
@@ -63,6 +72,15 @@ export default function Home() {
                 Stop feeding your LLM noisy data. Convert messy PDFs, complex tables, and cluttered web docs into clean,
                 structured Markdown ready for RAG.
               </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button href="/signup" variant="primary" className="px-6 py-3">
+                  Get Started
+                </Button>
+                <Button href="/login" variant="secondary" className="px-6 py-3">
+                  Sign In
+                </Button>
+              </div>
 
             </motion.div>
 
