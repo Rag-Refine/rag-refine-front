@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 
 export type SignupState = {
@@ -17,6 +18,8 @@ export async function signup(
   _prevState: SignupState,
   formData: FormData
 ): Promise<SignupState> {
+  const t = await getTranslations("Errors");
+
   const fullName = String(formData.get("full_name") || "").trim();
   const accountName = String(formData.get("account_name") || "").trim();
   const email = String(formData.get("email") || "").trim();
@@ -28,11 +31,11 @@ export async function signup(
   const formKey = Date.now();
 
   if (!fullName || !accountName || !email || !password || !confirmPassword) {
-    return { error: "All fields are required.", formKey, fields };
+    return { error: t("allFieldsRequired"), formKey, fields };
   }
 
   if (password !== confirmPassword) {
-    return { error: "Passwords do not match.", formKey, fields };
+    return { error: t("passwordsDoNotMatch"), formKey, fields };
   }
 
   const supabase = await createClient();

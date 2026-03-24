@@ -2,98 +2,84 @@
 
 import Link from "next/link";
 import { ArrowLeft, Github } from "lucide-react";
-import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { useActionState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "../../components/ui/button";
+import { login, type LoginState } from "./actions";
 
-type Errors = {
-  email?: string;
-  password?: string;
-};
+const initialState: LoginState = {};
 
 export default function LoginPage() {
-  const [errors, setErrors] = useState<Errors>({});
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const nextErrors: Errors = {};
-
-    if (!String(formData.get("email") || "").trim()) {
-      nextErrors.email = "Email is required";
-    }
-    if (!String(formData.get("password") || "").trim()) {
-      nextErrors.password = "Password is required";
-    }
-
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length === 0) {
-      // Here you would trigger your auth flow
-      console.log("submit", Object.fromEntries(formData.entries()));
-    }
-  };
+  const t = useTranslations("Login");
+  const tAuth = useTranslations("Auth");
+  const [state, formAction] = useActionState(login, initialState);
 
   return (
     <div className="flex w-full flex-col gap-8">
       <Link href="/" className="flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-100">
-        <ArrowLeft size={16} /> Back to Home
+        <ArrowLeft size={16} /> {tAuth("backToHome")}
       </Link>
 
       <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/5 bg-[#18181b] p-8 shadow-[0_18px_60px_-30px_rgba(59,130,246,0.6)]">
         <div className="space-y-2 text-left">
           <p className="text-sm font-semibold text-[#3b82f6]">RAG-Refine</p>
-          <h1 className="text-3xl font-bold text-white">Welcome back</h1>
-          <p className="text-sm text-zinc-400">Enter your credentials to access your dashboard</p>
+          <h1 className="text-3xl font-bold text-white">{t("title")}</h1>
+          <p className="text-sm text-zinc-400">{t("subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-3">
-          <SocialButton label="Continue with GitHub" icon={<Github size={18} />} />
+          <SocialButton label={tAuth("continueWithGithub")} icon={<Github size={18} />} />
           <SocialButton
-            label="Continue with Google"
+            label={tAuth("continueWithGoogle")}
             icon={<GoogleGlyph />}
             className="border-zinc-700/80 hover:border-[#3b82f6]/50"
           />
         </div>
 
-        <Separator label="OR" />
+        <Separator label={tAuth("or")} />
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        {state.error && (
+          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {state.error}
+          </div>
+        )}
+
+        <form action={formAction} className="mt-6 space-y-4">
           <InputField
             id="email"
             name="email"
-            label="Email"
+            label={tAuth("email")}
             type="email"
-            placeholder="you@company.com"
-            error={errors.email}
+            placeholder={tAuth("emailPlaceholder")}
+            defaultValue={state.fields?.email}
           />
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label htmlFor="password" className="text-sm text-zinc-300">
-                Password
+                {tAuth("password")}
               </label>
               <Link href="#" className="text-xs font-medium text-[#3b82f6] hover:text-[#60a5fa]">
-                Forgot password?
+                {t("forgotPassword")}
               </Link>
             </div>
             <InputField
               id="password"
               name="password"
               type="password"
-              placeholder="••••••••"
-              error={errors.password}
+              placeholder={tAuth("passwordPlaceholder")}
             />
           </div>
 
           <Button type="submit" className="mt-2 w-full justify-center">
-            Sign In
+            {t("signIn")}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-zinc-500">
-          Don&apos;t have an account?{" "}
+          {t("noAccount")}{" "}
           <Link href="/signup" className="font-semibold text-[#3b82f6] hover:text-[#60a5fa]">
-            Sign Up
+            {t("signUpLink")}
           </Link>
         </p>
       </div>

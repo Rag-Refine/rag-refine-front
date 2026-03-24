@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { ArrowLeft, Github, Loader2 } from "lucide-react";
 import { useActionState, useMemo, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "../../components/ui/button";
 import { signup, type SignupState } from "./actions";
 
 export default function SignupPage() {
+  const t = useTranslations("Signup");
+  const tAuth = useTranslations("Auth");
   const [state, formAction, pending] = useActionState<SignupState, FormData>(signup, {});
   const [password, setPassword] = useState("");
 
@@ -17,29 +20,35 @@ export default function SignupPage() {
     return "Weak";
   }, [password]);
 
+  const strengthText: Record<string, string> = {
+    Strong: t("strengthStrong"),
+    Medium: t("strengthMedium"),
+    Weak: t("strengthWeak"),
+  };
+
   return (
     <div className="flex w-full flex-col gap-8">
       <Link href="/" className="flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-100">
-        <ArrowLeft size={16} /> Back to Home
+        <ArrowLeft size={16} /> {tAuth("backToHome")}
       </Link>
 
       <div className="mx-auto w-full max-w-xl rounded-2xl border border-white/5 bg-[#18181b] p-8 shadow-[0_18px_60px_-30px_rgba(59,130,246,0.6)]">
         <div className="space-y-2 text-left">
           <p className="text-sm font-semibold text-[#3b82f6]">RAG-Refine</p>
-          <h1 className="text-3xl font-bold text-white">Create an account</h1>
-          <p className="text-sm text-zinc-400">Start cleaning your RAG data for free today</p>
+          <h1 className="text-3xl font-bold text-white">{t("title")}</h1>
+          <p className="text-sm text-zinc-400">{t("subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-3">
-          <SocialButton label="Sign up with GitHub" icon={<Github size={18} />} />
+          <SocialButton label={t("signUpWithGithub")} icon={<Github size={18} />} />
           <SocialButton
-            label="Sign up with Google"
+            label={t("signUpWithGoogle")}
             icon={<GoogleGlyph />}
             className="border-zinc-700/80 hover:border-[#3b82f6]/50"
           />
         </div>
 
-        <Separator label="OR" />
+        <Separator label={tAuth("or")} />
 
         <form key={state.formKey} action={formAction} className="mt-6 space-y-4">
           {state.error && (
@@ -51,25 +60,25 @@ export default function SignupPage() {
           <InputField
             id="full_name"
             name="full_name"
-            label="Full Name"
-            placeholder="Ada Lovelace"
+            label={t("fullName")}
+            placeholder={t("fullNamePlaceholder")}
             defaultValue={state.fields?.full_name}
             required
           />
           <InputField
             id="account_name"
             name="account_name"
-            label="Organization Name"
-            placeholder="Acme Corp"
+            label={t("organizationName")}
+            placeholder={t("organizationPlaceholder")}
             defaultValue={state.fields?.account_name}
             required
           />
           <InputField
             id="email"
             name="email"
-            label="Email"
+            label={tAuth("email")}
             type="email"
-            placeholder="you@company.com"
+            placeholder={tAuth("emailPlaceholder")}
             defaultValue={state.fields?.email}
             required
           />
@@ -77,39 +86,42 @@ export default function SignupPage() {
             <InputField
               id="password"
               name="password"
-              label="Password"
+              label={tAuth("password")}
               type="password"
-              placeholder="••••••••"
+              placeholder={tAuth("passwordPlaceholder")}
               required
               onChange={(e) => setPassword(e.target.value)}
             />
             <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Password strength</span>
-              <span className={strengthColor(strengthLabel)}>{strengthLabel || ""}</span>
+              <span>{t("passwordStrength")}</span>
+              <span className={strengthColor(strengthLabel)}>{strengthText[strengthLabel] || ""}</span>
             </div>
           </div>
           <InputField
             id="confirm_password"
             name="confirm_password"
-            label="Confirm Password"
+            label={t("confirmPassword")}
             type="password"
-            placeholder="••••••••"
+            placeholder={tAuth("passwordPlaceholder")}
             required
           />
 
           <Button type="submit" className="mt-2 w-full justify-center" disabled={pending}>
-            {pending ? <Loader2 size={16} className="animate-spin" /> : "Create Account"}
+            {pending ? <Loader2 size={16} className="animate-spin" /> : t("createAccount")}
           </Button>
         </form>
 
         <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">
-          By clicking continue, you agree to our <span className="text-zinc-200">Terms of Service</span> and <span className="text-zinc-200">Privacy Policy</span>.
+          {t.rich("termsNotice", {
+            terms: (chunks) => <span className="text-zinc-200">{chunks}</span>,
+            privacy: (chunks) => <span className="text-zinc-200">{chunks}</span>,
+          })}
         </p>
 
         <p className="mt-6 text-center text-sm text-zinc-500">
-          Already have an account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link href="/login" className="font-semibold text-[#3b82f6] hover:text-[#60a5fa]">
-            Log In
+            {t("logInLink")}
           </Link>
         </p>
       </div>
