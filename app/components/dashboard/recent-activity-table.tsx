@@ -7,10 +7,10 @@ import {
   Copy,
   Download,
   Trash2,
-  MoreHorizontal,
   FileX,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import { Badge } from "@/app/components/ui/badge";
 import { deleteJob } from "@/app/(dashboard)/dashboard/actions";
 
@@ -24,21 +24,23 @@ type Job = {
   created_at: string;
 };
 
-function relativeTime(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffSec = Math.floor((now - then) / 1000);
-
-  if (diffSec < 60) return "just now";
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
-  return new Date(dateStr).toLocaleDateString();
-}
-
 export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
+  const t = useTranslations("Activity");
+  const tStatus = useTranslations("Status");
   const router = useRouter();
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const relativeTime = (dateStr: string): string => {
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diffSec = Math.floor((now - then) / 1000);
+
+    if (diffSec < 60) return t("justNow");
+    if (diffSec < 3600) return t("minutesAgo", { count: String(Math.floor(diffSec / 60)) });
+    if (diffSec < 86400) return t("hoursAgo", { count: String(Math.floor(diffSec / 3600)) });
+    if (diffSec < 604800) return t("daysAgo", { count: String(Math.floor(diffSec / 86400)) });
+    return new Date(dateStr).toLocaleDateString();
+  };
 
   const handleCopy = async (job: Job) => {
     if (!job.output_markdown) return;
@@ -65,6 +67,9 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
     URL.revokeObjectURL(url);
   };
 
+  const statusLabel = (status: string) =>
+    tStatus(status as "pending" | "processing" | "completed" | "failed");
+
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-surface-lowest/60 px-6 py-16">
@@ -72,7 +77,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
           <FileX size={28} className="text-on-surface-variant" />
         </div>
         <p className="text-sm text-on-surface-variant">
-          No documents yet. Upload a file to get started.
+          {t("noDocuments")}
         </p>
       </div>
     );
@@ -86,16 +91,16 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
           <thead>
             <tr className="border-b border-white/5">
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-                File Name
+                {t("fileName")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-                Status
+                {t("status")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-                Date
+                {t("date")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-on-surface-variant">
-                Actions
+                {t("actions")}
               </th>
             </tr>
           </thead>
@@ -137,7 +142,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                         | "pending"
                     }
                   >
-                    {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                    {statusLabel(job.status)}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm text-on-surface-variant">
@@ -153,11 +158,11 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                             handleCopy(job);
                           }}
                           className="rounded-lg p-1.5 text-on-surface-variant transition hover:bg-white/5 hover:text-on-surface"
-                          title="Copy markdown"
+                          title={t("copyMarkdown")}
                         >
                           {copiedId === job.id ? (
                             <span className="text-xs text-secondary">
-                              Copied!
+                              {t("copied")}
                             </span>
                           ) : (
                             <Copy size={15} />
@@ -169,7 +174,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                             handleDownload(job);
                           }}
                           className="rounded-lg p-1.5 text-on-surface-variant transition hover:bg-white/5 hover:text-on-surface"
-                          title="Download markdown"
+                          title={t("downloadMarkdown")}
                         >
                           <Download size={15} />
                         </button>
@@ -181,7 +186,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                         handleDelete(job.id);
                       }}
                       className="rounded-lg p-1.5 text-on-surface-variant transition hover:bg-error/10 hover:text-error"
-                      title="Delete"
+                      title={t("delete")}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -221,7 +226,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                     | "pending"
                 }
               >
-                {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                {statusLabel(job.status)}
               </Badge>
             </div>
             <div className="mt-2 flex items-center justify-between">

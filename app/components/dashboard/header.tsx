@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, ChevronDown, LogOut, User as UserIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { UsageBar } from "@/app/components/ui/usage-bar";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ export function Header({
   pagesUsed,
   pagesLimit,
 }: HeaderProps) {
+  const t = useTranslations("Dashboard");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -62,7 +64,7 @@ export function Header({
         />
         <input
           type="text"
-          placeholder="Search docs..."
+          placeholder={t("searchPlaceholder")}
           className="w-full rounded-xl border border-white/5 bg-surface-high py-2 pl-9 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 transition focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
         />
       </div>
@@ -96,14 +98,14 @@ export function Header({
             <div className="p-1.5">
               <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-on-surface-variant transition hover:bg-white/5 hover:text-on-surface">
                 <UserIcon size={16} />
-                Profile
+                {t("profile")}
               </button>
               <button
                 onClick={handleSignOut}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-error transition hover:bg-error/5"
               >
                 <LogOut size={16} />
-                Sign Out
+                {t("signOut")}
               </button>
             </div>
           </div>

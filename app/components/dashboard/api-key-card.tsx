@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Key, Eye, EyeOff, Copy, Trash2, Plus, Terminal } from "lucide-react";
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import {
   generateApiKey,
   revokeApiKey,
@@ -25,6 +26,7 @@ export function ApiKeyCard({
   accountId: string;
   projectUrl: string;
 }) {
+  const t = useTranslations("ApiKey");
   const router = useRouter();
   const [revealed, setRevealed] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function ApiKeyCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Key size={18} className="text-primary" />
-          <h3 className="text-sm font-semibold text-on-surface">API Key</h3>
+          <h3 className="text-sm font-semibold text-on-surface">{t("title")}</h3>
         </div>
         {!displayKey && (
           <button
@@ -90,7 +92,7 @@ export function ApiKeyCard({
             className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/25 disabled:opacity-50"
           >
             <Plus size={14} />
-            {generating ? "Generating..." : "Generate Key"}
+            {generating ? t("generating") : t("generateKey")}
           </button>
         )}
       </div>
@@ -113,7 +115,7 @@ export function ApiKeyCard({
               className="rounded p-1 text-on-surface-variant hover:text-on-surface"
             >
               {copied ? (
-                <span className="text-xs text-secondary">Copied!</span>
+                <span className="text-xs text-secondary">{t("copied")}</span>
               ) : (
                 <Copy size={15} />
               )}
@@ -130,7 +132,7 @@ export function ApiKeyCard({
 
           {newKey && (
             <p className="text-xs text-error">
-              Save this key now — you won&apos;t be able to see it again.
+              {t("saveKeyWarning")}
             </p>
           )}
 
@@ -138,7 +140,7 @@ export function ApiKeyCard({
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
               <Terminal size={14} />
-              Quick start
+              {t("quickStart")}
             </div>
             <div className="relative rounded-xl border border-white/5 bg-surface-high p-4">
               <pre className="overflow-x-auto text-xs leading-relaxed text-on-surface-variant">
@@ -157,7 +159,7 @@ export function ApiKeyCard({
 
       {!displayKey && !newKey && (
         <p className="mt-3 text-xs text-on-surface-variant">
-          Generate an API key to integrate RAG-Refine into your pipeline.
+          {t("noKeyDescription")}
         </p>
       )}
     </motion.div>

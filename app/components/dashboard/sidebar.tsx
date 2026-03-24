@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   Clock,
@@ -18,14 +19,15 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/history", label: "History", icon: Clock },
-  { href: "/dashboard/api-keys", label: "API Keys", icon: Key },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/support", label: "Support", icon: HelpCircle },
+  { href: "/dashboard", labelKey: "dashboard" as const, icon: LayoutDashboard },
+  { href: "/dashboard/history", labelKey: "history" as const, icon: Clock },
+  { href: "/dashboard/api-keys", labelKey: "apiKeys" as const, icon: Key },
+  { href: "/dashboard/settings", labelKey: "settings" as const, icon: Settings },
+  { href: "/dashboard/support", labelKey: "support" as const, icon: HelpCircle },
 ];
 
 export function Sidebar({ accountPlan }: { accountPlan: string }) {
+  const t = useTranslations("Sidebar");
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -50,7 +52,7 @@ export function Sidebar({ accountPlan }: { accountPlan: string }) {
             } ${collapsed ? "justify-center" : ""}`}
           >
             <item.icon size={20} />
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span>{t(item.labelKey)}</span>}
           </Link>
         );
       })}
@@ -61,16 +63,16 @@ export function Sidebar({ accountPlan }: { accountPlan: string }) {
     <div className="mx-3 mb-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
         <Zap size={16} />
-        Upgrade to Pro
+        {t("upgradeToPro")}
       </div>
       <p className="mt-1 text-xs text-on-surface-variant">
-        Unlock unlimited pages and priority processing.
+        {t("upgradeDescription")}
       </p>
       <Link
         href="/dashboard/settings"
         className="mt-3 inline-flex items-center rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/25"
       >
-        View Plans
+        {t("viewPlans")}
       </Link>
     </div>
   );

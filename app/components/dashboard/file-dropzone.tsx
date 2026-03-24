@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useTranslations } from "next-intl";
 import { uploadFile } from "../../(dashboard)/dashboard/actions";
 
 type UploadItem = {
@@ -14,6 +15,8 @@ type UploadItem = {
 };
 
 export function FileDropzone({ accountId }: { accountId: string }) {
+  const t = useTranslations("Dropzone");
+  const tErrors = useTranslations("Errors");
   const [uploads, setUploads] = useState<UploadItem[]>([]);
 
   const onDrop = useCallback(
@@ -49,14 +52,14 @@ export function FileDropzone({ accountId }: { accountId: string }) {
           setUploads((prev) =>
             prev.map((u) =>
               u.id === upload.id
-                ? { ...u, status: "failed", error: "Upload failed" }
+                ? { ...u, status: "failed", error: tErrors("uploadFailed") }
                 : u
             )
           );
         }
       }
     },
-    [accountId]
+    [accountId, tErrors]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -102,12 +105,10 @@ export function FileDropzone({ accountId }: { accountId: string }) {
           </motion.div>
           <div className="text-center">
             <p className="text-sm font-medium text-on-surface">
-              {isDragActive
-                ? "Drop files here..."
-                : "Drag & drop PDF files here"}
+              {isDragActive ? t("dropHere") : t("dragAndDrop")}
             </p>
             <p className="mt-1 text-xs text-on-surface-variant">
-              Supports .pdf, .docx, .html — Max 50MB
+              {t("supportedFormats")}
             </p>
           </div>
         </div>
@@ -150,7 +151,7 @@ export function FileDropzone({ accountId }: { accountId: string }) {
                 )}
                 {upload.status === "failed" && (
                   <span className="text-xs text-error">
-                    {upload.error || "Failed"}
+                    {upload.error || t("failed")}
                   </span>
                 )}
                 <button

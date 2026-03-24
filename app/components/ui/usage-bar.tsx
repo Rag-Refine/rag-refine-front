@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 export function UsageBar({
   used,
   limit,
@@ -9,6 +11,7 @@ export function UsageBar({
   limit: number;
   className?: string;
 }) {
+  const t = useTranslations("Dashboard");
   const percentage = Math.min((used / limit) * 100, 100);
   const isHigh = percentage > 80;
 
@@ -27,7 +30,7 @@ export function UsageBar({
         </div>
       </div>
       <span className="whitespace-nowrap text-xs text-on-surface-variant">
-        {used.toLocaleString()} / {limit.toLocaleString()} pages
+        {used.toLocaleString()} / {limit.toLocaleString()} {t("pages")}
       </span>
     </div>
   );

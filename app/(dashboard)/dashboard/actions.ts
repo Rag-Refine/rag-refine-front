@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 
 // ── Upload File ──────────────────────────────────────────────────────────────
@@ -35,18 +36,19 @@ export async function uploadFile(
   _prevState: UploadState | Record<string, never>,
   formData: FormData
 ): Promise<UploadState> {
+  const t = await getTranslations("Errors");
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) return { error: t("notAuthenticated") };
 
   const file = formData.get("file") as File | null;
   const accountId = formData.get("account_id") as string | null;
 
   if (!file || !accountId) {
-    return { error: "File and account are required." };
+    return { error: t("fileAndAccountRequired") };
   }
 
   const allowedTypes = [
@@ -55,11 +57,11 @@ export async function uploadFile(
     "text/html",
   ];
   if (!allowedTypes.includes(file.type)) {
-    return { error: "Unsupported file type. Use PDF, DOCX, or HTML." };
+    return { error: t("unsupportedFileType") };
   }
 
   if (file.size > 50 * 1024 * 1024) {
-    return { error: "File size exceeds 50MB limit." };
+    return { error: t("fileSizeExceeds") };
   }
 
   // Create job row (MVP: immediately completed with mock markdown)
@@ -119,15 +121,16 @@ export async function deleteJob(
   _prevState: DeleteState | Record<string, never>,
   formData: FormData
 ): Promise<DeleteState> {
+  const t = await getTranslations("Errors");
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) return { error: t("notAuthenticated") };
 
   const jobId = formData.get("job_id") as string;
-  if (!jobId) return { error: "Job ID is required." };
+  if (!jobId) return { error: t("jobIdRequired") };
 
   // Fetch job to get storage path
   const { data: job } = await supabase
@@ -161,17 +164,18 @@ export async function generateApiKey(
   _prevState: ApiKeyState | Record<string, never>,
   formData: FormData
 ): Promise<ApiKeyState> {
+  const t = await getTranslations("Errors");
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) return { error: t("notAuthenticated") };
 
   const accountId = formData.get("account_id") as string;
   const label = (formData.get("label") as string) || "Default";
 
-  if (!accountId) return { error: "Account is required." };
+  if (!accountId) return { error: t("accountRequired") };
 
   // Generate a random API key with rr_ prefix
   const rawKey = crypto.randomUUID().replace(/-/g, "");
@@ -183,7 +187,9 @@ export async function generateApiKey(
   const data = encoder.encode(fullKey);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const keyHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  const keyHash = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 
   const { error } = await supabase.from("api_keys").insert({
     account_id: accountId,
@@ -209,15 +215,16 @@ export async function revokeApiKey(
   _prevState: RevokeState | Record<string, never>,
   formData: FormData
 ): Promise<RevokeState> {
+  const t = await getTranslations("Errors");
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) return { error: t("notAuthenticated") };
 
   const keyId = formData.get("key_id") as string;
-  if (!keyId) return { error: "Key ID is required." };
+  if (!keyId) return { error: t("keyIdRequired") };
 
   const { error } = await supabase.from("api_keys").delete().eq("id", keyId);
 

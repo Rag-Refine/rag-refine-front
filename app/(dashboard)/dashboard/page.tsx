@@ -1,14 +1,17 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import { FileDropzone } from "@/app/components/dashboard/file-dropzone";
 import { RecentActivityTable } from "@/app/components/dashboard/recent-activity-table";
 import { ApiKeyCard } from "@/app/components/dashboard/api-key-card";
 
-export const metadata = {
-  title: "Dashboard — RAG-Refine",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata");
+  return { title: t("dashboardTitle") };
+}
 
 export default async function DashboardPage() {
+  const t = await getTranslations("Dashboard");
   const supabase = await createClient();
 
   const {
@@ -54,7 +57,7 @@ export default async function DashboardPage() {
       {/* File Upload Section */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-on-surface">
-          Upload Documents
+          {t("uploadDocuments")}
         </h2>
         <FileDropzone accountId={accountId} />
       </section>
@@ -62,7 +65,7 @@ export default async function DashboardPage() {
       {/* Recent Activity */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-on-surface">
-          Recent Activity
+          {t("recentActivity")}
         </h2>
         <RecentActivityTable jobs={jobs || []} />
       </section>

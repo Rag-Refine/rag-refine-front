@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 
 export type LoginState = {
@@ -15,6 +16,8 @@ export async function login(
   _prevState: LoginState,
   formData: FormData
 ): Promise<LoginState> {
+  const t = await getTranslations("Errors");
+
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "").trim();
 
@@ -22,7 +25,7 @@ export async function login(
   const formKey = Date.now();
 
   if (!email || !password) {
-    return { error: "Email and password are required.", formKey, fields };
+    return { error: t("emailPasswordRequired"), formKey, fields };
   }
 
   const supabase = await createClient();

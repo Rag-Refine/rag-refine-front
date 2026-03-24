@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import { ArrowLeft, FileText, FileCode } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
@@ -11,6 +12,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("Metadata");
   const supabase = await createClient();
   const { data: job } = await supabase
     .from("jobs")
@@ -19,7 +21,9 @@ export async function generateMetadata({
     .single();
 
   return {
-    title: job ? `${job.file_name} — RAG-Refine` : "Job — RAG-Refine",
+    title: job
+      ? t("jobTitle", { fileName: job.file_name })
+      : t("jobTitleFallback"),
   };
 }
 
@@ -29,6 +33,8 @@ export default async function JobDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const t = await getTranslations("JobDetail");
+  const tStatus = await getTranslations("Status");
   const supabase = await createClient();
 
   const { data: job } = await supabase
@@ -57,7 +63,7 @@ export default async function JobDetailPage({
           className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-on-surface-variant transition hover:bg-white/5 hover:text-on-surface"
         >
           <ArrowLeft size={16} />
-          Back
+          {t("back")}
         </Link>
         <div className="flex items-center gap-3">
           <FileText size={18} className="text-on-surface-variant" />
@@ -69,7 +75,7 @@ export default async function JobDetailPage({
               job.status as "processing" | "completed" | "failed" | "pending"
             }
           >
-            {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+            {tStatus(job.status as "pending" | "processing" | "completed" | "failed")}
           </Badge>
         </div>
         {job.output_markdown && (
@@ -86,7 +92,7 @@ export default async function JobDetailPage({
           <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
             <FileText size={16} className="text-on-surface-variant" />
             <span className="text-sm font-medium text-on-surface-variant">
-              Original Document
+              {t("originalDocument")}
             </span>
           </div>
           <div className="flex-1 overflow-auto">
@@ -94,12 +100,12 @@ export default async function JobDetailPage({
               <iframe
                 src={documentUrl}
                 className="h-full min-h-[500px] w-full"
-                title="Original document"
+                title={t("originalDocument")}
               />
             ) : (
               <div className="flex h-full items-center justify-center p-8">
                 <p className="text-sm text-on-surface-variant">
-                  Original document not available.
+                  {t("documentNotAvailable")}
                 </p>
               </div>
             )}
@@ -111,7 +117,7 @@ export default async function JobDetailPage({
           <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
             <FileCode size={16} className="text-on-surface-variant" />
             <span className="text-sm font-medium text-on-surface-variant">
-              Markdown Output
+              {t("markdownOutput")}
             </span>
           </div>
           <div className="flex-1 overflow-auto p-4">
@@ -123,10 +129,10 @@ export default async function JobDetailPage({
               <div className="flex h-full items-center justify-center">
                 <p className="text-sm text-on-surface-variant">
                   {job.status === "processing"
-                    ? "Processing..."
+                    ? t("processing")
                     : job.status === "failed"
-                      ? job.error_message || "Conversion failed."
-                      : "No output available."}
+                      ? job.error_message || t("conversionFailed")
+                      : t("noOutput")}
                 </p>
               </div>
             )}
