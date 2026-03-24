@@ -134,6 +134,25 @@ const messages = {
     viewPlans: "View Plans",
   },
 
+  History: {
+    title: "History",
+    searchPlaceholder: "Search history...",
+    noResults: "No results found.",
+    noHistory: "No conversions yet.",
+    failedToLoad: "Failed to load history.",
+    errorTooltip: "Conversion failed. Please re-upload the file.",
+    groups: {
+      today: "Today",
+      yesterday: "Yesterday",
+      lastSevenDays: "Last 7 Days",
+      older: "Older",
+    },
+    actions: {
+      copy: "Copy Markdown",
+      delete: "Delete",
+    },
+  },
+
   Dropzone: {
     dropHere: "Drop files here...",
     dragAndDrop: "Drag & drop PDF files here",
