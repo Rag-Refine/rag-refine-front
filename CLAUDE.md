@@ -1,70 +1,81 @@
-# CLAUDE.md
+# RAG-Refine
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+B2B SaaS platform that converts messy documents (PDFs, web docs) into LLM-optimized Markdown for RAG systems. Solves the "Garbage In, Garbage Out" problem by providing high-fidelity ETL with structural integrity, noise filtering, and semantic optimization.
 
-@AGENTS.md
+**Status:** Early MVP — auth and landing page built; dashboard, file processing, and payments are planned.
 
-## Project Overview
+See `PROJECT_CONTEXT.md` for full business context, domain entities, and development constraints.
 
-RAG-Refine is a SaaS platform for converting messy PDFs, tables, and web documents into clean, RAG-ready Markdown and structured formats. Built with Next.js 16 (App Router), React 19, Supabase, and Tailwind CSS v4.
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript (strict mode) |
+| Styling | Tailwind CSS 4 (theme tokens in `app/globals.css`) |
+| Animation | Motion (Framer Motion v12) via `motion/react` |
+| Database | Supabase (PostgreSQL + Auth + Storage) |
+| Auth | Supabase Auth (email/password; OAuth-ready) |
+| Supabase SDK | `@supabase/ssr` (server/client split) |
+| Planned | Stripe (payments), FastAPI Python worker (doc processing) |
+
+## Project Structure
+
+```
+app/                        Next.js App Router pages and layouts
+  (auth)/                   Auth route group (signup, login) — shared dark layout
+  components/ui/            Shared reusable components (Button)
+utils/supabase/             Supabase client factories (server.ts, client.ts)
+supabase/migrations/        PostgreSQL migrations (accounts, triggers, RLS)
+proxy.ts                    Middleware for Supabase session refresh
+```
+
+**Path alias:** `@/*` maps to project root (`tsconfig.json`).
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build (forces Webpack, not Turbopack) |
-| `npm start` | Start production server |
-| `npm run lint` | Run ESLint |
+```bash
+npm run dev       # Start dev server
+npm run build     # Production build (Webpack, Turbopack disabled)
+npm run start     # Start production server
+npm run lint      # ESLint
+```
 
-No test framework is configured yet.
-
-## Architecture
-
-- **Next.js 16 App Router** — routes live in `app/`. Route groups use parenthesized folders (e.g., `(auth)/`).
-- **Supabase backend** — auth and database. Two client factories:
-  - `utils/supabase/client.ts` — browser-side (`createBrowserClient`)
-  - `utils/supabase/server.ts` — server-side (`createServerClient`) with cookie-based sessions
-- **Reusable UI components** live in `app/components/ui/`.
-- **Animations** use `motion/react` (Framer Motion v12 equivalent). Icons from `lucide-react`.
-
-## Styling
-
-Tailwind CSS v4 with a custom dark-first theme defined inline in `app/globals.css` via `@theme inline`. Key design tokens:
-
-- Surface hierarchy: `surface-lowest` through `surface-highest`
-- Primary: blue (`#adc6ff` / `#4d8eff`), Secondary: teal (`#4edea3`)
-- Font: Inter for sans, system monospace for mono
-- Glass-morphism effects (backdrop blur, transparency) are used throughout
-
-Use existing color tokens (`bg-surface-high`, `text-primary`, etc.) rather than hardcoded colors.
-
-## Environment Variables
-
-Defined in `.env.local` (not committed):
-- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — Supabase public anon key
-
-## Domain Context
-
-RAG-Refine solves the "Garbage In, Garbage Out" problem in RAG pipelines. Companies fail at RAG because documents (PDFs, Docs) are converted to messy unstructured text. This tool is a specialized ETL engine that produces LLM-optimized Markdown with structural integrity (tables, headers, lists reconstructed), noise filtering (page numbers, footers removed), and semantic optimization for vector database retrieval.
-
-**Target market:** B2B — developer teams and AI teams (international).
-
-**Core domain entities:**
-- `Job` — a single conversion process (`status`, `input_url`, `output_markdown`, `metadata`). Processing is async; UI must handle `pending`, `processing`, `completed`, `failed` states.
-- `Credits/Quota` — usage-based billing model (pages processed vs. plan limit).
-- `API Key` — programmatic access tokens for external pipeline integrations.
-
-**Processing worker** (FastAPI/Python) is a **separate future project** — do not scaffold or implement worker-side code in this repo. Integration will be added later.
-
-**Security constraint:** All file uploads must be private and scoped to the user's ID in Supabase Storage.
-
-**Language constraint:** All code, comments, variable names, and UI strings must be in **English**.
+No test framework configured yet.
 
 ## Key Conventions
 
-- TypeScript strict mode is enabled.
-- Path alias `@/*` maps to the project root.
-- Build explicitly disables Turbopack (`NEXT_TURBOPACK=0 NEXT_FORCE_WEBPACK=1`).
-- ESLint uses the flat config format (`eslint.config.mjs`) with `core-web-vitals` and `typescript` presets.
+- **Server/Client boundary:** Server Actions use `await createClient()` from `utils/supabase/server.ts`. Client Components use `createClient()` from `utils/supabase/client.ts`. Never cross-import.
+- **Form handling:** Server Actions return `{ error?, formKey?, fields? }` — never throw. Client uses `useActionState` hook. On success, actions call `redirect()`.
+- **Component extraction:** Page-scoped helpers stay in the page file. Extract to `app/components/` only when reused across pages.
+- **Color tokens:** Use Tailwind theme tokens (`bg-surface-high`, `text-primary`) — never hardcoded hex. See `app/globals.css:8-27`.
+- **Language:** All code, comments, UI strings, and docs must be in English.
+- **Database:** RLS enabled on all tables. Users access data only through `account_members` junction. Auto-provisioning via PostgreSQL triggers on signup.
+
+## Database Schema
+
+Two tables in `public` schema (see `supabase/migrations/`):
+- `accounts` — id, account_name, avatar_url, plan (default: 'free'), timestamps
+- `account_members` — links users to accounts with role (default: 'owner'), unique on (account_id, user_id)
+
+Triggers auto-create account + membership on `auth.users` INSERT.
+
+## MCP Servers
+
+Configured in `.mcp.json`:
+- **Supabase** — database operations, migrations, edge functions
+- **Next DevTools** — Next.js development utilities
+
+## Adding New Features or Fixing Bugs
+**IMPORTANT**: When you work on a new feature or bug, create a git branch first.
+Then  work on changes in that branch for the ramainder of the session
+
+## Additional Documentation
+
+Check these files when working on related areas:
+
+| File | When to check |
+|------|--------------|
+| `.claude/docs/architectural_patterns.md` | Building new features, UI components, or database changes |
+| `PROJECT_CONTEXT.md` | Understanding business requirements, domain entities, or constraints |
+| `AGENTS.md` | Next.js agent-specific rules |

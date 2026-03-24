@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 
 export type SignupState = {
   error?: string;
+  formKey?: number;
   fields?: {
     full_name?: string;
     account_name?: string;
@@ -24,12 +25,14 @@ export async function signup(
 
   const fields = { full_name: fullName, account_name: accountName, email };
 
+  const formKey = Date.now();
+
   if (!fullName || !accountName || !email || !password || !confirmPassword) {
-    return { error: "All fields are required.", fields };
+    return { error: "All fields are required.", formKey, fields };
   }
 
   if (password !== confirmPassword) {
-    return { error: "Passwords do not match.", fields };
+    return { error: "Passwords do not match.", formKey, fields };
   }
 
   const supabase = await createClient();
@@ -46,7 +49,7 @@ export async function signup(
   });
 
   if (error) {
-    return { error: error.message, fields };
+    return { error: error.message, formKey: Date.now(), fields };
   }
 
   redirect("/dashboard");

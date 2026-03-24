@@ -41,7 +41,7 @@ export default function SignupPage() {
 
         <Separator label="OR" />
 
-        <form action={formAction} className="mt-6 space-y-4">
+        <form key={state.formKey} action={formAction} className="mt-6 space-y-4">
           {state.error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {state.error}
@@ -53,6 +53,7 @@ export default function SignupPage() {
             name="full_name"
             label="Full Name"
             placeholder="Ada Lovelace"
+            defaultValue={state.fields?.full_name}
             required
           />
           <InputField
@@ -60,6 +61,7 @@ export default function SignupPage() {
             name="account_name"
             label="Organization Name"
             placeholder="Acme Corp"
+            defaultValue={state.fields?.account_name}
             required
           />
           <InputField
@@ -68,6 +70,7 @@ export default function SignupPage() {
             label="Email"
             type="email"
             placeholder="you@company.com"
+            defaultValue={state.fields?.email}
             required
           />
           <div className="space-y-2">
