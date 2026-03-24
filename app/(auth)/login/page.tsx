@@ -2,36 +2,14 @@
 
 import Link from "next/link";
 import { ArrowLeft, Github } from "lucide-react";
-import { useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import { useActionState, type InputHTMLAttributes, type ReactNode } from "react";
 import { Button } from "../../components/ui/button";
+import { login, type LoginState } from "./actions";
 
-type Errors = {
-  email?: string;
-  password?: string;
-};
+const initialState: LoginState = {};
 
 export default function LoginPage() {
-  const [errors, setErrors] = useState<Errors>({});
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const nextErrors: Errors = {};
-
-    if (!String(formData.get("email") || "").trim()) {
-      nextErrors.email = "Email is required";
-    }
-    if (!String(formData.get("password") || "").trim()) {
-      nextErrors.password = "Password is required";
-    }
-
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length === 0) {
-      // Here you would trigger your auth flow
-      console.log("submit", Object.fromEntries(formData.entries()));
-    }
-  };
+  const [state, formAction] = useActionState(login, initialState);
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -57,14 +35,20 @@ export default function LoginPage() {
 
         <Separator label="OR" />
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        {state.error && (
+          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {state.error}
+          </div>
+        )}
+
+        <form action={formAction} className="mt-6 space-y-4">
           <InputField
             id="email"
             name="email"
             label="Email"
             type="email"
             placeholder="you@company.com"
-            error={errors.email}
+            defaultValue={state.fields?.email}
           />
 
           <div className="space-y-2">
@@ -81,7 +65,6 @@ export default function LoginPage() {
               name="password"
               type="password"
               placeholder="••••••••"
-              error={errors.password}
             />
           </div>
 
