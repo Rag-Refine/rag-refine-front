@@ -56,8 +56,13 @@ export function Header({
       {/* Spacer for mobile hamburger */}
       <div className="w-8 lg:hidden" />
 
+      {/* Usage bar - hidden on small screens */}
+      <div className="hidden w-48 md:block">
+        <UsageBar used={pagesUsed} limit={pagesLimit} />
+      </div>
+
       {/* Search */}
-      <div className="relative flex-1 max-w-md">
+      <div className="relative flex-1 max-w-md ml-10">
         <Search
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
@@ -69,13 +74,8 @@ export function Header({
         />
       </div>
 
-      {/* Usage bar - hidden on small screens */}
-      <div className="hidden w-48 md:block">
-        <UsageBar used={pagesUsed} limit={pagesLimit} />
-      </div>
-
       {/* Profile dropdown */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative ml-auto" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-white/5"
