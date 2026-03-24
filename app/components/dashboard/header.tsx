@@ -52,7 +52,7 @@ export function Header({
     .slice(0, 2);
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b border-white/5 bg-surface-lowest/60 px-4 backdrop-blur-xl lg:px-6">
+    <header className="relative z-40 flex h-16 items-center gap-4 border-b border-white/5 bg-surface-lowest/60 px-4 backdrop-blur-xl lg:px-6">
       {/* Spacer for mobile hamburger */}
       <div className="w-8 lg:hidden" />
 
@@ -90,7 +90,7 @@ export function Header({
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-white/5 bg-surface-low shadow-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-white/5 bg-surface-low shadow-xl">
             <div className="border-b border-white/5 px-4 py-3">
               <p className="text-sm font-medium text-on-surface">{userName}</p>
               <p className="text-xs text-on-surface-variant">{userEmail}</p>
