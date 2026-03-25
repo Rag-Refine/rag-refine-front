@@ -1,12 +1,64 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useActionState, useEffect } from "react";
 import { motion } from "motion/react";
-import { CheckCircle2, Database, Filter, LayoutGrid, Terminal, Trash2, Wrench } from "lucide-react";
+import { CheckCircle2, Database, Filter, LayoutGrid, Loader2, Terminal, Trash2, Wrench } from "lucide-react";
+import { toast } from "sonner";
+import { joinWaitlist, type WaitlistState } from "@/app/actions/waitlist";
 
 const GlassPanel = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
   <div className={`bg-surface-lowest/60 backdrop-blur-xl border border-white/5 rounded-2xl ${className}`}>{children}</div>
 );
+
+const ERROR_MESSAGES: Record<string, string> = {
+  waitlistInvalidEmail: "Please enter a valid email address.",
+  waitlistDuplicate: "You're already on the list.",
+  waitlistError: "Something went wrong. Please try again.",
+};
+
+function WaitlistCard() {
+  const [state, action, isPending] = useActionState<WaitlistState, FormData>(joinWaitlist, {});
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success("You're on the list!");
+    }
+  }, [state.success, state.formKey]);
+
+  useEffect(() => {
+    if (state.error) {
+      toast.error(ERROR_MESSAGES[state.error] ?? state.error);
+    }
+  }, [state.error, state.formKey]);
+
+  return (
+    <div className="w-full max-w-md">
+      <GlassPanel className="p-6 border-primary/20 shadow-[0_0_24px_rgba(173,198,255,0.12)]">
+        <p className="text-base font-bold text-on-surface mb-1">Join the Private Beta</p>
+        <p className="text-sm text-on-surface-variant mb-5">Secure 500 free pages on launch.</p>
+        <form action={action} className="flex gap-2">
+          <input
+            key={state.formKey}
+            type="email"
+            name="email"
+            placeholder="you@company.com"
+            required
+            className="flex-1 min-w-0 bg-surface-lowest border border-white/10 rounded-lg px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/50 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all whitespace-nowrap"
+          >
+            {isPending ? <Loader2 size={14} className="animate-spin" /> : null}
+            {isPending ? "Joining..." : "Get Early Access"}
+          </button>
+        </form>
+      </GlassPanel>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
@@ -62,6 +114,15 @@ export default function Home() {
               <p className="text-xl text-on-surface-variant max-w-xl leading-relaxed">
                 Stop feeding your LLM noisy data. Convert messy PDFs, complex tables, and cluttered web docs into clean,
                 structured Markdown ready for RAG.
+              </p>
+
+              <WaitlistCard />
+
+              <p className="text-xs text-on-surface-variant/50">
+                Already have an account?{" "}
+                <a href="/login" className="text-primary hover:underline">
+                  Sign In
+                </a>
               </p>
 
             </motion.div>
