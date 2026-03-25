@@ -118,13 +118,6 @@ export default function Home() {
 
               <WaitlistCard />
 
-              <p className="text-xs text-on-surface-variant/50">
-                Already have an account?{" "}
-                <a href="/login" className="text-primary hover:underline">
-                  Sign In
-                </a>
-              </p>
-
             </motion.div>
 
             <motion.div
