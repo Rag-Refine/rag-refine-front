@@ -173,16 +173,20 @@ export async function generateApiKey(
   if (!user) return { error: t("notAuthenticated") };
 
   const accountId = formData.get("account_id") as string;
-  const label = (formData.get("label") as string) || "Default";
+  const name = (formData.get("name") as string) || "Default";
 
   if (!accountId) return { error: t("accountRequired") };
 
-  // Generate a random API key with rr_ prefix
-  const rawKey = crypto.randomUUID().replace(/-/g, "");
-  const fullKey = `rr_${rawKey}`;
-  const keyPrefix = fullKey.slice(0, 8);
+  // Generate a cryptographically random key with rr_live_ prefix
+  const rawBytes = crypto.getRandomValues(new Uint8Array(32));
+  const rawHex = Array.from(rawBytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const fullKey = `rr_live_${rawHex}`;
+  // Display: first 16 chars + "..." + last 4 chars  →  rr_live_a1b2c3d4...3f8e
+  const keyDisplay = `${fullKey.slice(0, 16)}...${fullKey.slice(-4)}`;
 
-  // Hash the key for storage
+  // Hash the key for storage — never store the raw value
   const encoder = new TextEncoder();
   const data = encoder.encode(fullKey);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
@@ -194,14 +198,15 @@ export async function generateApiKey(
   const { error } = await supabase.from("api_keys").insert({
     account_id: accountId,
     user_id: user.id,
-    key_prefix: keyPrefix,
+    name,
+    key_display: keyDisplay,
     key_hash: keyHash,
-    label,
   });
 
   if (error) return { error: error.message };
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/api-keys");
   return { key: fullKey };
 }
 
@@ -231,5 +236,6 @@ export async function revokeApiKey(
   if (error) return { error: error.message };
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/api-keys");
   return {};
 }

@@ -44,7 +44,7 @@ export default async function DashboardPage() {
   // Fetch API keys
   const { data: apiKeys } = await supabase
     .from("api_keys")
-    .select("id, key_prefix, label, created_at")
+    .select("id, key_display, name, created_at")
     .eq("account_id", accountId)
     .order("created_at", { ascending: false });
 

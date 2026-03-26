@@ -195,6 +195,40 @@ const messages = {
     copied: "Copied!",
   },
 
+  ApiKeys: {
+    pageTitle: "API Keys",
+    pageDescription:
+      "Authenticate your applications against the RAG-Refine REST API.",
+    metaTitle: "API Keys — RAG-Refine",
+    createKey: "Create API Key",
+    tableNameHeader: "Name",
+    tableKeyHeader: "Key",
+    tableCreatedHeader: "Created",
+    tableLastUsedHeader: "Last Used",
+    tableActionsHeader: "Actions",
+    neverUsed: "Never",
+    revokeKey: "Revoke",
+    revoking: "Revoking...",
+    emptyTitle: "No API keys yet",
+    emptyDescription:
+      "Create your first API key to start integrating RAG-Refine into your pipeline.",
+    emptyAction: "Create your first API Key",
+    modalCreateTitle: "Create API Key",
+    modalKeyNameLabel: "Key Name",
+    modalKeyNamePlaceholder: "e.g. Production, CI/CD, LangChain",
+    modalCreateButton: "Create",
+    modalCreating: "Creating...",
+    modalRevealTitle: "Your new API key",
+    modalRevealWarning:
+      "Copy this key now — you will not be able to see it again after closing this dialog.",
+    modalCopyKey: "Copy key",
+    modalCopied: "Copied!",
+    modalDone: "I've saved my key",
+    toastCreated: "API key created successfully.",
+    toastRevoked: "API key revoked.",
+    toastError: "Something went wrong. Please try again.",
+  },
+
   JobDetail: {
     back: "Back",
     originalDocument: "Original Document",
