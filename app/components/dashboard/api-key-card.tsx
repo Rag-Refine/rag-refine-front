@@ -12,8 +12,8 @@ import {
 
 type ApiKey = {
   id: string;
-  key_prefix: string;
-  label: string;
+  key_display: string;
+  name: string;
   created_at: string;
 };
 
@@ -38,7 +38,7 @@ export function ApiKeyCard({
     try {
       const formData = new FormData();
       formData.append("account_id", accountId);
-      formData.append("label", "Default");
+      formData.append("name", "Default");
       const result = await generateApiKey({}, formData);
       if (result.key) {
         setNewKey(result.key);
@@ -65,9 +65,7 @@ export function ApiKeyCard({
   };
 
   const displayKey = apiKeys[0];
-  const maskedKey = displayKey
-    ? `${displayKey.key_prefix}${"•".repeat(24)}`
-    : null;
+  const maskedKey = displayKey ? displayKey.key_display : null;
 
   const curlExample = `curl -X POST ${projectUrl}/api/v1/convert \\
   -H "Authorization: Bearer ${newKey || "rr_your_api_key"}" \\
