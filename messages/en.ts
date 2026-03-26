@@ -240,6 +240,52 @@ const messages = {
     copyMarkdown: "Copy Markdown",
     copied: "Copied!",
   },
+
+  Support: {
+    title: "Support",
+    subtitle: "Get help or share your feedback with us.",
+
+    form: {
+      title: "Contact Us",
+      subject: "Subject",
+      subjectPlaceholder: "Select a subject",
+      subjects: {
+        bug: "Bug Report",
+        feature: "Feature Request",
+        billing: "Billing",
+        other: "Other",
+      },
+      message: "Message",
+      messagePlaceholder: "Describe your issue or suggestion in detail...",
+      messageMinLength: "Message must be at least 20 characters.",
+      submit: "Send Message",
+      submitting: "Sending...",
+      successToast: "Message sent! We'll get back to you shortly.",
+      errorToast: "Failed to send message. Please try again.",
+    },
+
+    links: {
+      title: "Quick Links",
+      whatsapp: "Join WhatsApp Community",
+      whatsappDesc: "Get real-time support and connect with other users.",
+      docs: "Documentation",
+      docsDesc: "Browse guides, API references, and tutorials.",
+      email: "Email Support",
+      emailDesc: "Reach us directly at support@rag-refine.com",
+    },
+
+    faq: {
+      title: "Frequently Asked Questions",
+      q1: "What file types does RAG-Refine support?",
+      a1: "We currently support PDF, DOCX, and HTML files up to 50MB each.",
+      q2: "What is the maximum number of pages per PDF?",
+      a2: "Free plan supports PDFs up to 50 pages. Pro plan supports unlimited pages.",
+      q3: "How is the Markdown output structured?",
+      a3: "Output preserves headings, tables, lists, and code blocks with full semantic fidelity. Tables are reconstructed from OCR data into proper Markdown syntax.",
+      q4: "Can I use the output directly in my RAG pipeline?",
+      a4: "Yes. The output is optimized for chunking and embedding. You can consume it directly via our REST API or download it as a .md file.",
+    },
+  },
 } as const;
 
 export default messages;
