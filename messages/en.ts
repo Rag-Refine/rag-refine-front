@@ -241,6 +241,64 @@ const messages = {
     copied: "Copied!",
   },
 
+  Settings: {
+    metaTitle: "Settings — RAG-Refine",
+    pageTitle: "Settings",
+    pageDescription: "Manage your profile, preferences, and account.",
+
+    tabs: {
+      profile: "Profile",
+      preferences: "Preferences",
+      account: "Account",
+    },
+
+    profile: {
+      title: "Profile",
+      description: "Update your public profile information.",
+      avatarLabel: "Avatar",
+      nameLabel: "Full Name",
+      namePlaceholder: "Ada Lovelace",
+      emailLabel: "Email",
+      emailReadOnly: "Email cannot be changed here.",
+      saveButton: "Save Changes",
+      saving: "Saving...",
+    },
+
+    preferences: {
+      title: "Preferences",
+      description: "Customize your RAG-Refine experience.",
+      languageLabel: "Default RAG Output Language",
+      languagePlaceholder: "Select language",
+      themeLabel: "Appearance",
+      themeDescription: "Switch between dark and light mode.",
+      themeDark: "Dark",
+      themeLight: "Light",
+      saveButton: "Save Preferences",
+      saving: "Saving...",
+    },
+
+    account: {
+      title: "Account",
+      description: "Manage your account settings.",
+      dangerZoneTitle: "Danger Zone",
+      dangerZoneDescription:
+        "Permanently delete your account and all associated data. This action cannot be undone.",
+      deleteButton: "Delete Account",
+      deleteDialogTitle: "Delete Account",
+      deleteDialogDescription:
+        "Are you sure you want to delete your account? All your data, API keys, and conversion history will be permanently removed.",
+      deleteDialogConfirm: "Yes, delete my account",
+      deleteDialogCancel: "Cancel",
+      deleting: "Deleting...",
+    },
+
+    notifications: {
+      profileSaved: "Profile updated successfully.",
+      preferencesSaved: "Preferences updated.",
+      error: "Something went wrong. Please try again.",
+    },
+  },
+
   Support: {
     title: "Support",
     subtitle: "Get help or share your feedback with us.",
