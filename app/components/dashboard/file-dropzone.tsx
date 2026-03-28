@@ -5,19 +5,31 @@ import { useDropzone } from "react-dropzone";
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslations } from "next-intl";
-import { uploadFile } from "../../(dashboard)/dashboard/actions";
+import { toast } from "sonner";
+import { sha256 } from "@/utils/hash";
+import { checkFileHash, uploadFile } from "../../(dashboard)/dashboard/actions";
+
+type UploadStatus = "uploading" | "verifying" | "processing" | "completed" | "failed";
 
 type UploadItem = {
   id: string;
   file: File;
-  status: "uploading" | "completed" | "failed";
+  status: UploadStatus;
   error?: string;
+  duplicate?: boolean;
 };
 
 export function FileDropzone({ accountId }: { accountId: string }) {
   const t = useTranslations("Dropzone");
+  const tJobs = useTranslations("Jobs");
   const tErrors = useTranslations("Errors");
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+
+  const updateUpload = useCallback(
+    (id: string, patch: Partial<UploadItem>) =>
+      setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u))),
+    []
+  );
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
@@ -31,50 +43,68 @@ export function FileDropzone({ accountId }: { accountId: string }) {
 
       for (const upload of newUploads) {
         try {
+          // 1. Compute SHA-256 hash in the browser
+          const buffer = await upload.file.arrayBuffer();
+          const fileHash = await sha256(buffer);
+
+          // 2. Check for a completed duplicate on the server
+          updateUpload(upload.id, { status: "verifying" });
+          const hashResult = await checkFileHash(fileHash);
+
+          if (hashResult.error) {
+            updateUpload(upload.id, { status: "failed", error: hashResult.error });
+            toast.error(tJobs("error.generic"));
+            continue;
+          }
+
+          if (hashResult.duplicate) {
+            updateUpload(upload.id, { status: "completed", duplicate: true });
+            toast.info(tJobs("upload.duplicate_found"));
+            continue;
+          }
+
+          // 3. No duplicate — upload the file
+          updateUpload(upload.id, { status: "processing" });
           const formData = new FormData();
           formData.append("file", upload.file);
-          formData.append("account_id", accountId);
 
           const result = await uploadFile({}, formData);
 
-          setUploads((prev) =>
-            prev.map((u) =>
-              u.id === upload.id
-                ? {
-                    ...u,
-                    status: result.error ? "failed" : "completed",
-                    error: result.error,
-                  }
-                : u
-            )
-          );
+          if (result.error) {
+            updateUpload(upload.id, { status: "failed", error: result.error });
+            toast.error(result.error);
+          } else {
+            updateUpload(upload.id, { status: "completed" });
+            toast.success(upload.file.name);
+          }
         } catch {
-          setUploads((prev) =>
-            prev.map((u) =>
-              u.id === upload.id
-                ? { ...u, status: "failed", error: tErrors("uploadFailed") }
-                : u
-            )
-          );
+          updateUpload(upload.id, {
+            status: "failed",
+            error: tErrors("uploadFailed"),
+          });
+          toast.error(tJobs("error.generic"));
         }
       }
     },
-    [accountId, tErrors]
+    [updateUpload, tJobs, tErrors]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        [".docx"],
-      "text/html": [".html"],
     },
-    maxSize: 50 * 1024 * 1024, // 50MB
+    maxSize: 50 * 1024 * 1024,
   });
 
   const removeUpload = (id: string) => {
     setUploads((prev) => prev.filter((u) => u.id !== id));
+  };
+
+  const statusLabel = (upload: UploadItem): string => {
+    if (upload.status === "verifying") return tJobs("upload.verifying");
+    if (upload.status === "processing") return tJobs("status.processing");
+    return `${(upload.file.size / 1024).toFixed(0)} KB`;
   };
 
   return (
@@ -137,23 +167,29 @@ export function FileDropzone({ accountId }: { accountId: string }) {
                     {upload.file.name}
                   </p>
                   <p className="text-xs text-on-surface-variant">
-                    {(upload.file.size / 1024).toFixed(0)} KB
+                    {statusLabel(upload)}
                   </p>
                 </div>
-                {upload.status === "uploading" && (
-                  <Loader2
+
+                {(upload.status === "uploading" ||
+                  upload.status === "verifying" ||
+                  upload.status === "processing") && (
+                  <Loader2 size={16} className="animate-spin text-primary" />
+                )}
+
+                {upload.status === "completed" && (
+                  <CheckCircle2
                     size={16}
-                    className="animate-spin text-primary"
+                    className={upload.duplicate ? "text-primary" : "text-secondary"}
                   />
                 )}
-                {upload.status === "completed" && (
-                  <CheckCircle2 size={16} className="text-secondary" />
-                )}
+
                 {upload.status === "failed" && (
                   <span className="text-xs text-error">
                     {upload.error || t("failed")}
                   </span>
                 )}
+
                 <button
                   onClick={() => removeUpload(upload.id)}
                   className="rounded p-1 text-on-surface-variant hover:bg-white/5 hover:text-on-surface"

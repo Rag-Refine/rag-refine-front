@@ -299,6 +299,20 @@ const messages = {
     },
   },
 
+  Jobs: {
+    upload: {
+      duplicate_found: "Document already processed. Retrieving result...",
+      limit_error: "File size exceeds the 10MB limit.",
+      verifying: "Checking for duplicates...",
+    },
+    status: {
+      processing: "Refining PDF...",
+    },
+    error: {
+      generic: "An error occurred during upload.",
+    },
+  },
+
   Support: {
     title: "Support",
     subtitle: "Get help or share your feedback with us.",

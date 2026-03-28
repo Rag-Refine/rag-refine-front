@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { Sidebar } from "@/app/components/dashboard/sidebar";
 import { Header } from "@/app/components/dashboard/header";
+import { Toaster } from "sonner";
 
 export default async function DashboardLayout({
   children,
@@ -53,6 +54,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-background text-on-surface">
+      <Toaster position="bottom-right" theme="dark" />
       <Sidebar accountPlan={account.plan} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header
