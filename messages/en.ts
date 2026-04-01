@@ -306,10 +306,19 @@ const messages = {
       verifying: "Checking for duplicates...",
     },
     status: {
-      processing: "Refining PDF...",
+      queued: "Document queued for processing...",
+      processing: "Refining PDF structure...",
+      refining: "AI is polishing the Markdown structure...",
+      completed: "Conversion complete!",
+      extracting: "Engine is extracting document structure...",
+      finalizing: "Finalizing Markdown...",
     },
     error: {
       generic: "An error occurred during upload.",
+      engine_offline: "The conversion engine is currently offline. Please try again later.",
+    },
+    success: {
+      converted: "Document successfully converted to Markdown.",
     },
   },
 
