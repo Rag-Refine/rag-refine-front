@@ -48,10 +48,11 @@ export async function POST(request: NextRequest) {
     update.error_message = error_message ?? "Engine reported an unknown error";
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("jobs")
     .update(update)
-    .eq("id", job_id);
+    .eq("id", job_id)
+    .select();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
