@@ -130,8 +130,67 @@ export async function uploadFile(
     .update({ storage_path: storageError ? null : storagePath })
     .eq("id", job.id);
 
-  revalidatePath("/dashboard");
-  return { jobId: job.id };
+  // ── Forward to Python engine (async) ──────────────────────────────────────
+  const tJobs = await getTranslations("Jobs");
+  const engineUrl = process.env.PDF_ENGINE_URL ?? "http://localhost:8000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const engineForm = new FormData();
+    engineForm.append(
+      "file",
+      new Blob([arrayBuffer], { type: file.type }),
+      file.name
+    );
+    engineForm.append("job_id", job.id);
+    engineForm.append(
+      "callback_url",
+      `${appUrl}/api/webhooks/engine-callback`
+    );
+
+    const engineRes = await fetch(`${engineUrl}/convert`, {
+      method: "POST",
+      body: engineForm,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!engineRes.ok) {
+      throw new Error(`Engine error: ${engineRes.status} ${engineRes.statusText}`);
+    }
+
+    // Engine accepted the job and will call our webhook when done
+    await supabase
+      .from("jobs")
+      .update({ status: "processing" })
+      .eq("id", job.id);
+
+    revalidatePath("/dashboard");
+    return { jobId: job.id };
+  } catch (err) {
+    clearTimeout(timeoutId);
+
+    const isOffline =
+      (err instanceof Error && err.name === "AbortError") ||
+      (err as NodeJS.ErrnoException).code === "ECONNREFUSED";
+
+    const errorMessage = isOffline
+      ? tJobs("error.engine_offline")
+      : err instanceof Error
+        ? err.message
+        : String(err);
+
+    await supabase
+      .from("jobs")
+      .update({ status: "failed", error_message: errorMessage })
+      .eq("id", job.id);
+
+    revalidatePath("/dashboard");
+    return { error: errorMessage, jobId: job.id };
+  }
 }
 
 // ── Delete Job ───────────────────────────────────────────────────────────────

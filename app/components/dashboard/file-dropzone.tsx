@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -8,8 +8,15 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { sha256 } from "@/utils/hash";
 import { checkFileHash, uploadFile } from "../../(dashboard)/dashboard/actions";
+import { createClient } from "@/utils/supabase/client";
 
-type UploadStatus = "uploading" | "verifying" | "processing" | "completed" | "failed";
+type UploadStatus =
+  | "uploading"
+  | "verifying"
+  | "processing"
+  | "refining"
+  | "completed"
+  | "failed";
 
 type UploadItem = {
   id: string;
@@ -19,16 +26,79 @@ type UploadItem = {
   duplicate?: boolean;
 };
 
+const ACTIVE_STATUSES: UploadStatus[] = [
+  "uploading",
+  "verifying",
+  "processing",
+  "refining",
+];
+
 export function FileDropzone({ accountId }: { accountId: string }) {
   const t = useTranslations("Dropzone");
   const tJobs = useTranslations("Jobs");
   const tErrors = useTranslations("Errors");
   const [uploads, setUploads] = useState<UploadItem[]>([]);
 
+  const supabase = useMemo(() => createClient(), []);
+
+  // Per-upload Realtime channel handles
+  const channelsRef = useRef<
+    Map<string, ReturnType<typeof supabase.channel>>
+  >(new Map());
+
+  // Clean up all channels on unmount
+  useEffect(() => {
+    return () => {
+      channelsRef.current.forEach((ch) => supabase.removeChannel(ch));
+    };
+  }, [supabase]);
+
   const updateUpload = useCallback(
     (id: string, patch: Partial<UploadItem>) =>
-      setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u))),
+      setUploads((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, ...patch } : u))
+      ),
     []
+  );
+
+  const subscribeToJob = useCallback(
+    (uploadId: string, jobId: string) => {
+      const channel = supabase
+        .channel(`job-${jobId}-${uploadId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "jobs",
+            filter: `id=eq.${jobId}`,
+          },
+          (payload) => {
+            const jobStatus = (payload.new as { status: string }).status;
+            if (jobStatus === "completed") {
+              updateUpload(uploadId, { status: "completed" });
+              toast.success(tJobs("success.converted"));
+              supabase.removeChannel(channel);
+              channelsRef.current.delete(uploadId);
+            } else if (jobStatus === "failed") {
+              const errMsg = (
+                payload.new as { error_message?: string | null }
+              ).error_message;
+              updateUpload(uploadId, {
+                status: "failed",
+                error: errMsg ?? tJobs("error.generic"),
+              });
+              toast.error(errMsg ?? tJobs("error.generic"));
+              supabase.removeChannel(channel);
+              channelsRef.current.delete(uploadId);
+            }
+          }
+        )
+        .subscribe();
+
+      channelsRef.current.set(uploadId, channel);
+    },
+    [supabase, updateUpload, tJobs]
   );
 
   const onDrop = useCallback(
@@ -52,7 +122,10 @@ export function FileDropzone({ accountId }: { accountId: string }) {
           const hashResult = await checkFileHash(fileHash);
 
           if (hashResult.error) {
-            updateUpload(upload.id, { status: "failed", error: hashResult.error });
+            updateUpload(upload.id, {
+              status: "failed",
+              error: hashResult.error,
+            });
             toast.error(tJobs("error.generic"));
             continue;
           }
@@ -63,8 +136,9 @@ export function FileDropzone({ accountId }: { accountId: string }) {
             continue;
           }
 
-          // 3. No duplicate — upload the file
+          // 3. No duplicate — upload and hand off to the engine
           updateUpload(upload.id, { status: "processing" });
+
           const formData = new FormData();
           formData.append("file", upload.file);
 
@@ -73,9 +147,10 @@ export function FileDropzone({ accountId }: { accountId: string }) {
           if (result.error) {
             updateUpload(upload.id, { status: "failed", error: result.error });
             toast.error(result.error);
-          } else {
-            updateUpload(upload.id, { status: "completed" });
-            toast.success(upload.file.name);
+          } else if (result.jobId) {
+            // Engine accepted the job — subscribe to Realtime for completion
+            updateUpload(upload.id, { status: "refining" });
+            subscribeToJob(upload.id, result.jobId);
           }
         } catch {
           updateUpload(upload.id, {
@@ -86,26 +161,41 @@ export function FileDropzone({ accountId }: { accountId: string }) {
         }
       }
     },
-    [updateUpload, tJobs, tErrors]
+    [updateUpload, subscribeToJob, tJobs, tErrors]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      "application/pdf": [".pdf"],
-    },
+    accept: { "application/pdf": [".pdf"] },
     maxSize: 50 * 1024 * 1024,
   });
 
   const removeUpload = (id: string) => {
+    const channel = channelsRef.current.get(id);
+    if (channel) {
+      supabase.removeChannel(channel);
+      channelsRef.current.delete(id);
+    }
     setUploads((prev) => prev.filter((u) => u.id !== id));
   };
 
   const statusLabel = (upload: UploadItem): string => {
-    if (upload.status === "verifying") return tJobs("upload.verifying");
-    if (upload.status === "processing") return tJobs("status.processing");
-    return `${(upload.file.size / 1024).toFixed(0)} KB`;
+    switch (upload.status) {
+      case "verifying":
+        return tJobs("upload.verifying");
+      case "processing":
+        return tJobs("status.processing");
+      case "refining":
+        return tJobs("status.refining");
+      case "completed":
+        return tJobs("status.completed");
+      default:
+        return `${(upload.file.size / 1024).toFixed(0)} KB`;
+    }
   };
+
+  // suppress unused variable warning — accountId is reserved for future use
+  void accountId;
 
   return (
     <div className="space-y-4">
@@ -171,21 +261,21 @@ export function FileDropzone({ accountId }: { accountId: string }) {
                   </p>
                 </div>
 
-                {(upload.status === "uploading" ||
-                  upload.status === "verifying" ||
-                  upload.status === "processing") && (
+                {ACTIVE_STATUSES.includes(upload.status) && (
                   <Loader2 size={16} className="animate-spin text-primary" />
                 )}
 
                 {upload.status === "completed" && (
                   <CheckCircle2
                     size={16}
-                    className={upload.duplicate ? "text-primary" : "text-secondary"}
+                    className={
+                      upload.duplicate ? "text-primary" : "text-secondary"
+                    }
                   />
                 )}
 
                 {upload.status === "failed" && (
-                  <span className="text-xs text-error">
+                  <span className="max-w-[160px] truncate text-xs text-error">
                     {upload.error || t("failed")}
                   </span>
                 )}
