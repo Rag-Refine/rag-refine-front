@@ -632,8 +632,13 @@ export default function Home() {
             </div>
 
             <div className="col-span-2 md:col-span-1 mt-12 md:mt-0 text-right">
-              <p className="mb-2">© 2025 RAG-Refine. Built for enterprise AI trust.</p>
-              <p className="text-slate-600">EU Data Residency · GDPR Compliant · SOC2 (in progress)</p>
+              <p className="mb-2">
+                © {new Date().getFullYear()} RAG-Refine. Built for enterprise AI
+                trust.
+              </p>
+              <p className="text-slate-600">
+                EU Data Residency · GDPR Compliant · SOC2 (in progress)
+              </p>
             </div>
           </div>
         </div>
