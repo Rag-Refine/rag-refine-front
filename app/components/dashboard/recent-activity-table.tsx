@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText,
@@ -12,6 +12,7 @@ import {
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/app/components/ui/badge";
+import { createClient } from "@/utils/supabase/client";
 import { deleteJob } from "@/app/(dashboard)/dashboard/actions";
 
 type Job = {
@@ -21,35 +22,93 @@ type Job = {
   status: string;
   page_count: number;
   output_markdown: string | null;
+  structured_content: unknown[] | null;
   created_at: string;
 };
 
-export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
+function relativeTime(dateStr: string, labels: Record<string, string>): string {
+  const diffSec = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diffSec < 60) return labels.justNow;
+  if (diffSec < 3600) return labels.minutesAgo.replace("{count}", String(Math.floor(diffSec / 60)));
+  if (diffSec < 86400) return labels.hoursAgo.replace("{count}", String(Math.floor(diffSec / 3600)));
+  if (diffSec < 604800) return labels.daysAgo.replace("{count}", String(Math.floor(diffSec / 86400)));
+  return new Date(dateStr).toLocaleDateString();
+}
+
+export function RecentActivityTable({ jobs: initialJobs }: { jobs: Job[] }) {
   const t = useTranslations("Activity");
   const tStatus = useTranslations("Status");
   const router = useRouter();
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const relativeTime = (dateStr: string): string => {
-    const now = Date.now();
-    const then = new Date(dateStr).getTime();
-    const diffSec = Math.floor((now - then) / 1000);
+  const supabase = useMemo(() => createClient(), []);
 
-    if (diffSec < 60) return t("justNow");
-    if (diffSec < 3600) return t("minutesAgo", { count: String(Math.floor(diffSec / 60)) });
-    if (diffSec < 86400) return t("hoursAgo", { count: String(Math.floor(diffSec / 3600)) });
-    if (diffSec < 604800) return t("daysAgo", { count: String(Math.floor(diffSec / 86400)) });
-    return new Date(dateStr).toLocaleDateString();
+  const timeLabels = useMemo(
+    () => ({
+      justNow: t("justNow"),
+      minutesAgo: t("minutesAgo", { count: "{count}" }),
+      hoursAgo: t("hoursAgo", { count: "{count}" }),
+      daysAgo: t("daysAgo", { count: "{count}" }),
+    }),
+    [t]
+  );
+
+  // ── Realtime subscription ───────────────────────────────────────────────────
+  useEffect(() => {
+    const channel = supabase
+      .channel("recent-activity-jobs")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "jobs" },
+        (payload) => {
+          setJobs((prev) =>
+            prev.map((j) =>
+              j.id === payload.new.id ? (payload.new as Job) : j
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "jobs" },
+        (payload) => {
+          setJobs((prev) => {
+            // Avoid duplicates if server already included it
+            if (prev.some((j) => j.id === payload.new.id)) return prev;
+            return [payload.new as Job, ...prev].slice(0, 10);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
+  // Derive copyable text: prefer output_markdown, fallback to joining structured blocks
+  const getMarkdownText = (job: Job): string | null => {
+    if (job.output_markdown) return job.output_markdown;
+    if (job.structured_content && job.structured_content.length > 0) {
+      return (job.structured_content as Array<{ text?: string }>)
+        .map((b) => b.text ?? "")
+        .filter(Boolean)
+        .join("\n\n");
+    }
+    return null;
   };
 
   const handleCopy = async (job: Job) => {
-    if (!job.output_markdown) return;
-    await navigator.clipboard.writeText(job.output_markdown);
+    const text = getMarkdownText(job);
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
     setCopiedId(job.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handleDelete = async (jobId: string) => {
+    setJobs((prev) => prev.filter((j) => j.id !== jobId));
     const formData = new FormData();
     formData.append("job_id", jobId);
     await deleteJob({}, formData);
@@ -57,8 +116,9 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
   };
 
   const handleDownload = (job: Job) => {
-    if (!job.output_markdown) return;
-    const blob = new Blob([job.output_markdown], { type: "text/markdown" });
+    const text = getMarkdownText(job);
+    if (!text) return;
+    const blob = new Blob([text], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -69,6 +129,9 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
 
   const statusLabel = (status: string) =>
     tStatus(status as "pending" | "processing" | "completed" | "failed");
+
+  const hasContent = (job: Job) =>
+    !!(job.output_markdown || (job.structured_content && job.structured_content.length > 0));
 
   if (jobs.length === 0) {
     return (
@@ -112,8 +175,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() =>
-                  job.status === "completed" &&
-                  router.push(`/jobs/${job.id}`)
+                  job.status === "completed" && router.push(`/jobs/${job.id}`)
                 }
                 className={`border-b border-white/5 last:border-0 ${
                   job.status === "completed"
@@ -123,10 +185,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <FileText
-                      size={18}
-                      className="text-on-surface-variant"
-                    />
+                    <FileText size={18} className="text-on-surface-variant" />
                     <span className="text-sm font-medium text-on-surface">
                       {job.file_name}
                     </span>
@@ -135,22 +194,18 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
                 <td className="px-4 py-3">
                   <Badge
                     variant={
-                      job.status as
-                        | "processing"
-                        | "completed"
-                        | "failed"
-                        | "pending"
+                      job.status as "processing" | "completed" | "failed" | "pending"
                     }
                   >
                     {statusLabel(job.status)}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm text-on-surface-variant">
-                  {relativeTime(job.created_at)}
+                  {relativeTime(job.created_at, timeLabels)}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
-                    {job.status === "completed" && (
+                    {job.status === "completed" && hasContent(job) && (
                       <>
                         <button
                           onClick={(e) => {
@@ -219,11 +274,7 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
               </div>
               <Badge
                 variant={
-                  job.status as
-                    | "processing"
-                    | "completed"
-                    | "failed"
-                    | "pending"
+                  job.status as "processing" | "completed" | "failed" | "pending"
                 }
               >
                 {statusLabel(job.status)}
@@ -231,10 +282,10 @@ export function RecentActivityTable({ jobs }: { jobs: Job[] }) {
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-on-surface-variant">
-                {relativeTime(job.created_at)}
+                {relativeTime(job.created_at, timeLabels)}
               </span>
               <div className="flex items-center gap-1">
-                {job.status === "completed" && (
+                {job.status === "completed" && hasContent(job) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
