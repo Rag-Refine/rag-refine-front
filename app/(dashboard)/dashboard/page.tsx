@@ -35,7 +35,7 @@ export default async function DashboardPage() {
   const { data: jobs } = await supabase
     .from("jobs")
     .select(
-      "id, file_name, file_type, status, page_count, output_markdown, created_at"
+      "id, file_name, file_type, status, page_count, output_markdown, structured_content, created_at"
     )
     .eq("account_id", accountId)
     .order("created_at", { ascending: false })

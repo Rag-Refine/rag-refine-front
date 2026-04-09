@@ -31,9 +31,7 @@ export type CheckHashState = {
   duplicate?: boolean;
 };
 
-export async function checkFileHash(
-  fileHash: string
-): Promise<CheckHashState> {
+export async function checkFileHash(fileHash: string): Promise<CheckHashState> {
   const supabase = await createClient();
 
   const {
@@ -69,7 +67,7 @@ export type UploadState = {
 
 export async function uploadFile(
   _prevState: UploadState | Record<string, never>,
-  formData: FormData
+  formData: FormData,
 ): Promise<UploadState> {
   const t = await getTranslations("Errors");
   const supabase = await createClient();
@@ -133,7 +131,8 @@ export async function uploadFile(
   // ── Forward to Python engine (async) ──────────────────────────────────────
   const tJobs = await getTranslations("Jobs");
   const engineUrl = process.env.PDF_ENGINE_URL ?? "http://localhost:8000";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://host.docker.internal:3000";
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
@@ -142,13 +141,10 @@ export async function uploadFile(
     engineForm.append(
       "file",
       new Blob([arrayBuffer], { type: file.type }),
-      file.name
+      file.name,
     );
     engineForm.append("job_id", job.id);
-    engineForm.append(
-      "callback_url",
-      `${appUrl}/api/webhooks/engine-callback`
-    );
+    engineForm.append("callback_url", `${appUrl}/api/webhooks/engine-callback`);
 
     const engineRes = await fetch(`${engineUrl}/convert`, {
       method: "POST",
@@ -159,7 +155,9 @@ export async function uploadFile(
     clearTimeout(timeoutId);
 
     if (!engineRes.ok) {
-      throw new Error(`Engine error: ${engineRes.status} ${engineRes.statusText}`);
+      throw new Error(
+        `Engine error: ${engineRes.status} ${engineRes.statusText}`,
+      );
     }
 
     // Engine accepted the job and will call our webhook when done
@@ -201,7 +199,7 @@ export type DeleteState = {
 
 export async function deleteJob(
   _prevState: DeleteState | Record<string, never>,
-  formData: FormData
+  formData: FormData,
 ): Promise<DeleteState> {
   const t = await getTranslations("Errors");
   const supabase = await createClient();
@@ -241,7 +239,7 @@ export type ApiKeyState = {
 
 export async function generateApiKey(
   _prevState: ApiKeyState | Record<string, never>,
-  formData: FormData
+  formData: FormData,
 ): Promise<ApiKeyState> {
   const t = await getTranslations("Errors");
   const supabase = await createClient();
@@ -297,7 +295,7 @@ export type RevokeState = {
 
 export async function revokeApiKey(
   _prevState: RevokeState | Record<string, never>,
-  formData: FormData
+  formData: FormData,
 ): Promise<RevokeState> {
   const t = await getTranslations("Errors");
   const supabase = await createClient();
