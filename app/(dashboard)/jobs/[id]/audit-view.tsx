@@ -93,6 +93,7 @@ export function AuditView({ job: initialJob, documentUrl }: AuditViewProps) {
   function handleBlockClick(block: MarkdownBlock) {
     setActiveBlockId(block.id);
     setActivePage(block.pageHint);
+    setHoveredBbox(block.bbox ?? null);
   }
 
   function handleBlockHover(block: MarkdownBlock | null) {
