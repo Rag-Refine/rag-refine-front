@@ -1,11 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { AlertTriangle, Code2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { MarkdownBlock, ConfidenceTier } from "./types";
+
+// ── Spatial grid constants ────────────────────────────────────────────────────
+
+/** Standard A4 PDF width in points — used as flex-basis reference. */
+const PAGE_REF_WIDTH = 595;
+/** Y-coordinate tolerance (px) for grouping blocks onto the same visual row. */
+const Y_TOLERANCE = 12;
 
 // ── Confidence-tier indicators ────────────────────────────────────────────────
 
@@ -20,6 +27,48 @@ const TIER_BADGE_BG: Record<ConfidenceTier, string> = {
   medium: "bg-amber-50 text-amber-700",
   low: "bg-red-50 text-red-700",
 };
+
+// ── Spatial row grouping ──────────────────────────────────────────────────────
+
+/**
+ * Groups blocks into visual rows based on their Y coordinate (bbox[1]).
+ * Blocks within Y_TOLERANCE of each other are placed on the same row and
+ * then sorted left-to-right by X coordinate (bbox[0]).
+ * Blocks without bbox each occupy their own solo row, appended at the end.
+ */
+function groupBlocksByRow(blocks: MarkdownBlock[]): MarkdownBlock[][] {
+  if (blocks.length === 0) return [];
+
+  const withBbox = blocks.filter((b) => b.bbox != null);
+  const withoutBbox = blocks.filter((b) => b.bbox == null);
+
+  const rows: MarkdownBlock[][] = [];
+
+  if (withBbox.length > 0) {
+    const sorted = [...withBbox].sort((a, b) => a.bbox![1] - b.bbox![1]);
+    let currentRow: MarkdownBlock[] = [sorted[0]];
+    let rowY = sorted[0].bbox![1];
+
+    for (let i = 1; i < sorted.length; i++) {
+      const block = sorted[i];
+      if (Math.abs(block.bbox![1] - rowY) <= Y_TOLERANCE) {
+        currentRow.push(block);
+      } else {
+        rows.push(currentRow.sort((a, b) => a.bbox![0] - b.bbox![0]));
+        currentRow = [block];
+        rowY = block.bbox![1];
+      }
+    }
+    rows.push(currentRow.sort((a, b) => a.bbox![0] - b.bbox![0]));
+  }
+
+  // Blocks without bbox each get their own row at the end.
+  for (const block of withoutBbox) {
+    rows.push([block]);
+  }
+
+  return rows;
+}
 
 // ── Filter options (static — outside component) ───────────────────────────────
 
@@ -40,6 +89,55 @@ function PageSeparator({ label }: { label: string }) {
   );
 }
 
+// ── Spatial row wrapper ───────────────────────────────────────────────────────
+
+interface SpatialRowProps {
+  row: MarkdownBlock[];
+  activeBlockId: string | null;
+  typeLabels: Record<MarkdownBlock["type"], string>;
+  onBlockClick: (block: MarkdownBlock) => void;
+  onBlockHover: (block: MarkdownBlock | null) => void;
+}
+
+function SpatialRow({ row, activeBlockId, typeLabels, onBlockClick, onBlockHover }: SpatialRowProps) {
+  if (row.length === 1) {
+    const block = row[0];
+    return (
+      <BlockItem
+        block={block}
+        isActive={activeBlockId === block.id}
+        typeLabel={typeLabels[block.type]}
+        onClick={() => onBlockClick(block)}
+        onHover={onBlockHover}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-row gap-4 items-start">
+      {row.map((block) => {
+        const flexBasis = block.bbox
+          ? `${((block.bbox[2] - block.bbox[0]) / PAGE_REF_WIDTH) * 100}%`
+          : undefined;
+        return (
+          <div
+            key={block.id}
+            style={flexBasis ? { flexBasis, minWidth: 0 } : { flex: 1, minWidth: 0 }}
+          >
+            <BlockItem
+              block={block}
+              isActive={activeBlockId === block.id}
+              typeLabel={typeLabels[block.type]}
+              onClick={() => onBlockClick(block)}
+              onHover={onBlockHover}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Block item renderer ───────────────────────────────────────────────────────
 
 interface BlockItemProps {
@@ -50,7 +148,68 @@ interface BlockItemProps {
   onHover: (block: MarkdownBlock | null) => void;
 }
 
+// ── Shared ReactMarkdown components ──────────────────────────────────────────
+
+const MD_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>["components"] = {
+  table: ({ children }) => (
+    <div className="overflow-x-auto my-1 w-full">
+      <table className="w-full border-collapse text-xs">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="bg-gray-100 border-b border-gray-300">{children}</thead>,
+  tbody: ({ children }) => <tbody className="divide-y divide-gray-200">{children}</tbody>,
+  tr: ({ children }) => <tr className="even:bg-gray-50">{children}</tr>,
+  th: ({ children }) => (
+    <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold text-gray-800 text-xs font-mono">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td className="border border-gray-200 px-2 py-1.5 text-gray-700 text-xs font-mono align-top">
+      {children}
+    </td>
+  ),
+  h1: ({ children }) => (
+    <h1 className="text-base font-bold text-gray-900 leading-snug">{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-sm font-bold text-gray-900 leading-snug">{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-sm font-semibold text-gray-800 leading-snug">{children}</h3>
+  ),
+  h4: ({ children }) => (
+    <h4 className="text-xs font-semibold text-gray-800">{children}</h4>
+  ),
+  h5: ({ children }) => (
+    <h5 className="text-xs font-medium text-gray-700">{children}</h5>
+  ),
+  h6: ({ children }) => <h6 className="text-xs text-gray-700">{children}</h6>,
+  p: ({ children }) => (
+    <p className="text-xs leading-relaxed text-gray-800 font-mono tabular-nums">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="list-disc pl-4 text-xs text-gray-800 space-y-0.5">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal pl-4 text-xs text-gray-800 space-y-0.5">{children}</ol>
+  ),
+  li: ({ children }) => <li>{children}</li>,
+  code: ({ children }) => (
+    <code className="bg-gray-100 px-0.5 rounded text-xs font-mono">{children}</code>
+  ),
+  pre: ({ children }) => (
+    <pre className="bg-gray-100 rounded p-2 text-xs font-mono overflow-x-auto my-1">
+      {children}
+    </pre>
+  ),
+};
+
+// ── Block item renderer ───────────────────────────────────────────────────────
+
 function BlockItem({ block, isActive, typeLabel, onClick, onHover }: BlockItemProps) {
+  const isTable = block.type === "table";
+
   return (
     <div
       id={block.id}
@@ -58,14 +217,14 @@ function BlockItem({ block, isActive, typeLabel, onClick, onHover }: BlockItemPr
       onMouseEnter={() => onHover(block)}
       onMouseLeave={() => onHover(null)}
       className={`
-        group relative cursor-pointer rounded border-l-4 pl-2 pr-3 py-1.5
-        transition-colors hover:bg-black/[0.03]
+        group relative cursor-pointer rounded border-l-4 transition-colors hover:bg-black/[0.03]
+        ${isTable ? "pl-0 pr-0 py-2 w-full" : "pl-2 pr-3 py-1.5"}
         ${TIER_BORDER[block.tier]}
         ${isActive ? "bg-black/[0.05] ring-1 ring-inset ring-black/10" : ""}
       `}
     >
       {/* Always-visible badge — type + confidence */}
-      <div className="absolute top-1 right-1 z-10 flex items-center gap-1 pointer-events-none">
+      <div className={`absolute top-1 right-1 z-10 flex items-center gap-1 pointer-events-none ${isTable ? "right-2" : ""}`}>
         <span className={`rounded px-1 py-0.5 text-[10px] font-medium leading-none ${TIER_BADGE_BG[block.tier]}`}>
           {typeLabel}
         </span>
@@ -81,72 +240,16 @@ function BlockItem({ block, isActive, typeLabel, onClick, onHover }: BlockItemPr
         </span>
       </div>
 
-      {/* Content — pt-4 clears the badge */}
-      <div className="min-w-0 pt-4">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{
-            table: ({ children }) => (
-              <div className="overflow-x-auto my-1">
-                <table className="w-full border-collapse text-xs">{children}</table>
-              </div>
-            ),
-            thead: ({ children }) => <thead className="bg-gray-100">{children}</thead>,
-            tbody: ({ children }) => <tbody>{children}</tbody>,
-            tr: ({ children }) => <tr className="even:bg-gray-50">{children}</tr>,
-            th: ({ children }) => (
-              <th className="border border-gray-300 px-2 py-1 text-left font-semibold text-gray-800 text-xs">
-                {children}
-              </th>
-            ),
-            td: ({ children }) => (
-              <td className="border border-gray-300 px-2 py-1 text-gray-700 text-xs">
-                {children}
-              </td>
-            ),
-            h1: ({ children }) => (
-              <h1 className="text-base font-bold text-gray-900 leading-snug">{children}</h1>
-            ),
-            h2: ({ children }) => (
-              <h2 className="text-sm font-bold text-gray-900 leading-snug">{children}</h2>
-            ),
-            h3: ({ children }) => (
-              <h3 className="text-sm font-semibold text-gray-800 leading-snug">{children}</h3>
-            ),
-            h4: ({ children }) => (
-              <h4 className="text-xs font-semibold text-gray-800">{children}</h4>
-            ),
-            h5: ({ children }) => (
-              <h5 className="text-xs font-medium text-gray-700">{children}</h5>
-            ),
-            h6: ({ children }) => <h6 className="text-xs text-gray-700">{children}</h6>,
-            p: ({ children }) => (
-              <p className="text-xs leading-relaxed text-gray-800">{children}</p>
-            ),
-            ul: ({ children }) => (
-              <ul className="list-disc pl-4 text-xs text-gray-800 space-y-0.5">{children}</ul>
-            ),
-            ol: ({ children }) => (
-              <ol className="list-decimal pl-4 text-xs text-gray-800 space-y-0.5">{children}</ol>
-            ),
-            li: ({ children }) => <li>{children}</li>,
-            code: ({ children }) => (
-              <code className="bg-gray-100 px-0.5 rounded text-xs font-mono">{children}</code>
-            ),
-            pre: ({ children }) => (
-              <pre className="bg-gray-100 rounded p-2 text-xs font-mono overflow-x-auto my-1">
-                {children}
-              </pre>
-            ),
-          }}
-        >
+      {/* Content */}
+      <div className={`min-w-0 ${isTable ? "pt-6 px-2 overflow-x-auto" : "pt-4"}`}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
           {block.raw}
         </ReactMarkdown>
       </div>
 
       {/* Inline audit note */}
       {block.auditNote && (
-        <div className="mt-1.5 flex items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+        <div className={`mt-1.5 flex items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-2 py-1.5 ${isTable ? "mx-2" : ""}`}>
           <AlertTriangle size={11} className="mt-0.5 shrink-0 text-amber-500" />
           <span className="text-[10px] leading-snug text-amber-700">{block.auditNote}</span>
         </div>
@@ -206,6 +309,8 @@ export function MarkdownPanel({
     [blocks, confidenceFilter]
   );
 
+  // Group blocks by page, then use bbox Y-coordinates to cluster blocks that
+  // share the same visual row in the original document.
   const pageGroups = useMemo(() => {
     const map = new Map<number, MarkdownBlock[]>();
     for (const block of filtered) {
@@ -215,7 +320,10 @@ export function MarkdownPanel({
     }
     return Array.from(map.entries())
       .sort(([a], [b]) => a - b)
-      .map(([page, pageBlocks]) => ({ page, pageBlocks }));
+      .map(([page, pageBlocks]) => ({
+        page,
+        rows: groupBlocksByRow(pageBlocks),
+      }));
   }, [filtered]);
 
   const filterLabels: Record<FilterOption, string> = {
@@ -273,17 +381,17 @@ export function MarkdownPanel({
           </div>
         ) : (
           <div className="py-4 px-2">
-            {pageGroups.map(({ page, pageBlocks }) => (
+            {pageGroups.map(({ page, rows }) => (
               <div key={page} className="mb-2">
                 <PageSeparator label={t("pageSeparator", { page: String(page) })} />
-                {pageBlocks.map((block) => (
-                  <BlockItem
-                    key={block.id}
-                    block={block}
-                    isActive={activeBlockId === block.id}
-                    typeLabel={typeLabels[block.type]}
-                    onClick={() => onBlockClick(block)}
-                    onHover={onBlockHover}
+                {rows.map((row) => (
+                  <SpatialRow
+                    key={row.map((b) => b.id).join("+")}
+                    row={row}
+                    activeBlockId={activeBlockId}
+                    typeLabels={typeLabels}
+                    onBlockClick={onBlockClick}
+                    onBlockHover={onBlockHover}
                   />
                 ))}
               </div>
