@@ -77,7 +77,7 @@ No test framework configured yet.
 |----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Supabase anon key |
-| `PDF_ENGINE_URL` | Python FastAPI engine URL (defaults to `http://localhost:8000`) |
+| `PDF_ENGINE_URL` | Python FastAPI engine URL (defaults to `http://localhost:8888`) |
 
 ## Key Conventions
 

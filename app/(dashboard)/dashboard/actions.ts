@@ -130,7 +130,7 @@ export async function uploadFile(
 
   // ── Forward to Python engine (async) ──────────────────────────────────────
   const tJobs = await getTranslations("Jobs");
-  const engineUrl = process.env.PDF_ENGINE_URL ?? "http://localhost:8000";
+  const engineUrl = process.env.PDF_ENGINE_URL ?? "http://localhost:8888";
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? "http://host.docker.internal:3000";
   const controller = new AbortController();
