@@ -1,13 +1,15 @@
 export type ConfidenceTier = "high" | "medium" | "low";
 
 export interface EngineBlock {
+  id?: string;
   text?: string;
-  markdown?: string; // some engine versions send markdown field instead of text
+  markdown?: string;
   page?: number;
+  bbox?: [number, number, number, number];
   type?: string;
+  level?: number;
   confidence_score?: number;
   audit_note?: string;
-  bbox?: [number, number, number, number]; // [x1, y1, x2, y2] in PDF coordinate space
 }
 
 export interface MarkdownBlock {

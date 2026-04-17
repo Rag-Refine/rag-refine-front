@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/utils/supabase/service";
 
 type EngineBlock = {
+  id?: string;
   text?: string;
   markdown?: string;
   page?: number;
+  bbox?: [number, number, number, number];
   type?: string;
+  level?: number;
   confidence_score?: number;
   audit_note?: string;
 };
