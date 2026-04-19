@@ -112,6 +112,8 @@ const messages = {
     jobIdRequired: "Job ID is required.",
     keyIdRequired: "Key ID is required.",
     uploadFailed: "Upload failed",
+    anonymizationFailed:
+      "Could not sanitize sensitive data from the file. The upload was aborted to protect your data.",
   },
 
   Dashboard: {
@@ -264,6 +266,11 @@ const messages = {
     pageSeparator: "Page {page}",
     simulatedNote: "Confidence scores are estimated — structured output from the processing engine will improve accuracy.",
     liveUpdates: "Live",
+    redactionClean: "No PII detected",
+    redactionCount: "{count} items redacted",
+    redactionBreakdown: "Redaction breakdown",
+    redactionMissed:
+      "{count} candidate(s) could not be located in the text layer.",
   },
 
   Settings: {

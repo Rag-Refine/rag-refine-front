@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/utils/supabase/server";
 import { sha256 } from "@/utils/hash";
+import { anonymizePdf } from "@/utils/anonymize";
 
 // ── Shared helper: resolve account_id for the current user ───────────────────
 
@@ -92,8 +93,27 @@ export async function uploadFile(
     return { error: t("fileSizeExceeds") };
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const fileHash = await sha256(arrayBuffer);
+  // Hash the original bytes so duplicate detection still works post-redaction.
+  // The reference is dropped as soon as sanitization returns — JS can't zero
+  // the buffer, but letting GC reclaim it is the best we can do here.
+  let originalBytes: ArrayBuffer | null = await file.arrayBuffer();
+  const fileHash = await sha256(originalBytes);
+
+  // ── Anonymize before anything touches storage or the engine ───────────────
+  // If sanitization fails we abort the upload — raw PII must never reach the
+  // storage bucket.
+  let sanitizedBytes: ArrayBuffer;
+  let redactionSummary;
+  try {
+    const result = await anonymizePdf(originalBytes, file.name, file.type);
+    sanitizedBytes = result.bytes;
+    redactionSummary = result.summary;
+  } catch (err) {
+    console.error("Anonymization failed:", err);
+    return { error: t("anonymizationFailed") };
+  } finally {
+    originalBytes = null;
+  }
 
   // Create job with pending status
   const { data: job, error: jobError } = await supabase
@@ -102,10 +122,11 @@ export async function uploadFile(
       account_id: accountId,
       user_id: user.id,
       file_name: file.name,
-      file_size: file.size,
+      file_size: sanitizedBytes.byteLength,
       file_type: file.type,
       status: "pending",
       file_hash: fileHash,
+      redaction_summary: redactionSummary,
     })
     .select("id")
     .single();
@@ -114,11 +135,11 @@ export async function uploadFile(
     return { error: jobError.message };
   }
 
-  // Upload file to user_uploads bucket: {account_id}/{job_id}.pdf
+  // Upload the SANITIZED file to user_uploads bucket: {account_id}/{job_id}.pdf
   const storagePath = `${accountId}/${job.id}.pdf`;
   const { error: storageError } = await supabase.storage
     .from("user_uploads")
-    .upload(storagePath, arrayBuffer, {
+    .upload(storagePath, sanitizedBytes, {
       contentType: file.type,
       upsert: false,
     });
@@ -140,7 +161,7 @@ export async function uploadFile(
     const engineForm = new FormData();
     engineForm.append(
       "file",
-      new Blob([arrayBuffer], { type: file.type }),
+      new Blob([sanitizedBytes], { type: file.type }),
       file.name,
     );
     engineForm.append("job_id", job.id);
