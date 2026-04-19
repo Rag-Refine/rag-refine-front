@@ -8,6 +8,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { createClient } from "@/utils/supabase/client";
 import { CopyMarkdownButton } from "./copy-button";
 import { AuditStatsBar } from "./audit-stats-bar";
+import { RedactionBadge } from "./redaction-badge";
 import { PdfPanel } from "./pdf-panel";
 import { MarkdownPanel } from "./markdown-panel";
 import { parseEngineBlocks, parseMarkdownBlocks } from "./parse-markdown";
@@ -144,11 +145,14 @@ export function AuditView({ job: initialJob, documentUrl }: AuditViewProps) {
             </span>
           )}
         </div>
-        {markdownForCopy && (
-          <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          {job.redaction_summary && (
+            <RedactionBadge summary={job.redaction_summary} />
+          )}
+          {markdownForCopy && (
             <CopyMarkdownButton markdown={markdownForCopy} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Stats bar — only shown when output exists */}

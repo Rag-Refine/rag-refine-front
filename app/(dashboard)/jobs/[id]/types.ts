@@ -30,6 +30,12 @@ export interface AuditStats {
   mediumCount: number;
 }
 
+export interface RedactionSummary {
+  applied: Record<string, number>;
+  missed: Record<string, number>;
+  total: number;
+}
+
 export interface JobData {
   id: string;
   file_name: string;
@@ -40,6 +46,7 @@ export interface JobData {
   page_count: number;
   error_message: string | null;
   created_at: string;
+  redaction_summary: RedactionSummary | null;
 }
 
 export interface AuditViewProps {
