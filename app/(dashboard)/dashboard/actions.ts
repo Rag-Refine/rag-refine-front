@@ -93,6 +93,27 @@ export async function uploadFile(
     return { error: t("fileSizeExceeds") };
   }
 
+  // Gate the upload on the persistent quota. Exact page count is only
+  // known once the engine finishes, so this is the fast rejection path
+  // (already over the limit); the webhook does the authoritative
+  // check-and-increment with the real page_count.
+  const { data: quotaData } = await supabase.rpc("reset_quota_if_expired", {
+    p_account_id: accountId,
+  });
+  const quota = quotaData as {
+    ok: boolean;
+    pages_consumed?: number;
+    monthly_page_limit?: number;
+  } | null;
+  if (
+    quota?.ok &&
+    typeof quota.pages_consumed === "number" &&
+    typeof quota.monthly_page_limit === "number" &&
+    quota.pages_consumed >= quota.monthly_page_limit
+  ) {
+    return { error: t("monthlyLimitReached") };
+  }
+
   // Hash the original bytes so duplicate detection still works post-redaction.
   // The reference is dropped as soon as sanitization returns — JS can't zero
   // the buffer, but letting GC reclaim it is the best we can do here.
@@ -243,6 +264,9 @@ export async function deleteJob(
     await supabase.storage.from("user_uploads").remove([job.storage_path]);
   }
 
+  // Do not refund pages_consumed here: the monthly quota tracks pages
+  // processed within the rolling window, independent of whether the
+  // resulting document is kept. Deletion must never decrement.
   const { error } = await supabase.from("jobs").delete().eq("id", jobId);
 
   if (error) return { error: error.message };

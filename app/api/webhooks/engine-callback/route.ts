@@ -118,6 +118,39 @@ export async function POST(request: NextRequest) {
     update.error_message = error_message ?? "Engine reported an unknown error";
   }
 
+  // Atomically charge the persistent quota before marking the job
+  // completed. If consumption would exceed the monthly limit, flip the
+  // job to failed instead so the user isn't charged and sees a clear
+  // reason. Deletes never refund — the counter only moves forward.
+  if (
+    status === "completed" &&
+    typeof update.page_count === "number" &&
+    (update.page_count as number) > 0
+  ) {
+    const { data: jobRow } = await supabase
+      .from("jobs")
+      .select("account_id")
+      .eq("id", job_id)
+      .single();
+
+    if (jobRow?.account_id) {
+      const { data: consumeData } = await supabase.rpc("consume_pages", {
+        p_account_id: jobRow.account_id,
+        p_pages: update.page_count as number,
+      });
+      const consume = consumeData as { ok: boolean; error?: string } | null;
+      if (!consume?.ok) {
+        update.status = "failed";
+        update.error_message =
+          consume?.error === "limit_exceeded"
+            ? "Monthly page limit reached."
+            : "Quota check failed.";
+        delete update.output_markdown;
+        delete update.structured_content;
+      }
+    }
+  }
+
   console.log(`[webhook] writing fields: ${Object.keys(update).join(", ")}`);
 
   const { error } = await supabase

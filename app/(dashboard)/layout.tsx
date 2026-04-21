@@ -21,7 +21,9 @@ export default async function DashboardLayout({
   // Fetch account membership
   const { data: membership } = await supabase
     .from("account_members")
-    .select("account_id, role, accounts(id, account_name, plan)")
+    .select(
+      "account_id, role, accounts(id, account_name, plan, pages_consumed, monthly_page_limit, quota_reset_date)",
+    )
     .eq("user_id", user.id)
     .single();
 
@@ -31,21 +33,30 @@ export default async function DashboardLayout({
     id: string;
     account_name: string;
     plan: string;
+    pages_consumed: number;
+    monthly_page_limit: number;
+    quota_reset_date: string;
   };
 
-  // Fetch usage stats: total pages processed this month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Roll the 30-day window forward if it has expired. The RPC is a
+  // no-op when the window is still active.
+  const { data: quotaData } = await supabase.rpc("reset_quota_if_expired", {
+    p_account_id: account.id,
+  });
+  const quota = quotaData as {
+    ok: boolean;
+    pages_consumed?: number;
+    monthly_page_limit?: number;
+  } | null;
 
-  const { data: usageData } = await supabase
-    .from("jobs")
-    .select("page_count")
-    .eq("account_id", account.id)
-    .gte("created_at", startOfMonth.toISOString());
-
-  const pagesUsed = usageData?.reduce((sum, j) => sum + (j.page_count || 0), 0) ?? 0;
-  const pagesLimit = account.plan === "pro" ? 10000 : 2000;
+  const pagesUsed =
+    (quota?.ok && typeof quota.pages_consumed === "number"
+      ? quota.pages_consumed
+      : account.pages_consumed) ?? 0;
+  const pagesLimit =
+    (quota?.ok && typeof quota.monthly_page_limit === "number"
+      ? quota.monthly_page_limit
+      : account.monthly_page_limit) ?? 2000;
 
   const userName =
     user.user_metadata?.full_name ||

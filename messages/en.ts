@@ -112,6 +112,7 @@ const messages = {
     jobIdRequired: "Job ID is required.",
     keyIdRequired: "Key ID is required.",
     uploadFailed: "Upload failed",
+    monthlyLimitReached: "Monthly page limit reached.",
     anonymizationFailed:
       "Could not sanitize sensitive data from the file. The upload was aborted to protect your data.",
   },
