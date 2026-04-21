@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, X, CheckCircle2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -37,6 +38,7 @@ export function FileDropzone({ accountId }: { accountId: string }) {
   const t = useTranslations("Dropzone");
   const tJobs = useTranslations("Jobs");
   const tErrors = useTranslations("Errors");
+  const router = useRouter();
   const [uploads, setUploads] = useState<UploadItem[]>([]);
 
   const supabase = useMemo(() => createClient(), []);
@@ -78,6 +80,9 @@ export function FileDropzone({ accountId }: { accountId: string }) {
             if (jobStatus === "completed") {
               updateUpload(uploadId, { status: "completed" });
               toast.success(tJobs("success.converted"));
+              // Re-render the server layout so the usage counter in the
+              // header picks up the freshly incremented pages_consumed.
+              router.refresh();
               supabase.removeChannel(channel);
               channelsRef.current.delete(uploadId);
             } else if (jobStatus === "failed") {
@@ -98,7 +103,7 @@ export function FileDropzone({ accountId }: { accountId: string }) {
 
       channelsRef.current.set(uploadId, channel);
     },
-    [supabase, updateUpload, tJobs]
+    [supabase, updateUpload, tJobs, router]
   );
 
   const onDrop = useCallback(
