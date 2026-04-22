@@ -56,7 +56,7 @@ export default async function DashboardLayout({
   const pagesLimit =
     (quota?.ok && typeof quota.monthly_page_limit === "number"
       ? quota.monthly_page_limit
-      : account.monthly_page_limit) ?? 2000;
+      : account.monthly_page_limit) ?? 500;
 
   const userName =
     user.user_metadata?.full_name ||
