@@ -97,7 +97,7 @@ function WaitlistCard() {
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all whitespace-nowrap"
           >
             {isPending ? <Loader2 size={14} className="animate-spin" /> : null}
-            {isPending ? "Joining..." : "Get Access"}
+            {isPending ? "Joining..." : "Join Waiting List"}
           </button>
         </form>
       </GlassPanel>
